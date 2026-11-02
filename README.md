@@ -1,5 +1,30 @@
 # DungeonUnity
 
+## Quick start (macOS)
+
+One line in Terminal:
+
+```
+curl -fsSL https://raw.githubusercontent.com/TheMehranKhan/DungeonUnity/main/setup.command | zsh
+```
+
+Or clone the repo and double-click `setup.command` in Finder.
+
+It clones or updates the project into `~/DungeonUnity`, downloads all models, textures and previews from the [assets-v1 release](https://github.com/TheMehranKhan/DungeonUnity/releases/tag/assets-v1) (resumable, checksum-verified), then opens Unity 2022.3 and runs `DungeonSetup.BuildScene`, which creates `Assets/Scenes/Welcome.unity` and `Assets/Scenes/Dungeon.unity` and adds them to Build Settings. Open `Welcome.unity` and press Play. You can rebuild any time from the menu **Dungeon > Build Scene**. Missing models are skipped with a warning.
+
+Options: `DUNGEON_DIR=/path` to install elsewhere, `SKIP_UNITY=1` to only download.
+
+## Psychedelic pack
+
+Downloaded by `setup.command` (release asset `Psychedelic-pack.zip`):
+
+- `Assets/Models/Psychedelic/`: Bouncer, CrystalTotem, DJGuy, FloatingEyeball, HeartPill, LavaLamp, MeltingMushroom, RainbowCapsule, RaverGirl, SmileyPill, WarpedDiscoBall (.glb)
+- `Assets/Textures/Psychedelic/`: MeltingRainbowWall, NeonCrackFloor, SpiralPortalPattern, TrippySkybox, PsychedelicSpriteSheet (.png)
+- `previews/`: a PNG preview of each psychedelic model
+
+The big club models (`Assets/Models/*.glb`) are release assets too, since they are about 45 MB each.
+
+
 A dungeon rave club kit for Unity: lighting, lasers, a DJ booth, big speakers, a grimy bathroom and red lights, plus a welcome screen with a button that drops you into first-person player mode.
 
 ## Open it in Unity
