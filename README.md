@@ -10,7 +10,7 @@ curl -fsSL https://raw.githubusercontent.com/TheMehranKhan/DungeonUnity/main/set
 
 Or clone the repo and double-click `setup.command` in Finder.
 
-It clones or updates the project into `~/DungeonUnity`, downloads all models, textures and previews from the [assets-v1 release](https://github.com/TheMehranKhan/DungeonUnity/releases/tag/assets-v1) (resumable, checksum-verified), then opens Unity 2022.3 and runs `DungeonSetup.BuildScene`, which creates `Assets/Scenes/Welcome.unity` and `Assets/Scenes/Dungeon.unity` and adds them to Build Settings. Open `Welcome.unity` and press Play. You can rebuild any time from the menu **Dungeon > Build Scene**. Missing models are skipped with a warning.
+It clones or updates the project into `~/DungeonUnity`, downloads all models, textures and previews from the [assets-v1 release](https://github.com/TheMehranKhan/DungeonUnity/releases/tag/assets-v1) (resumable, checksum-verified), then opens Unity 2022.3 and runs `DungeonUnity.Editor.DungeonSetup.BuildScene`, which creates `Assets/Scenes/Welcome.unity` and `Assets/Scenes/Dungeon.unity` and adds them to Build Settings. Open `Welcome.unity` and press Play. You can rebuild any time from the menu **Dungeon > Build Scene**. Missing models are skipped with a warning.
 
 Options: `DUNGEON_DIR=/path` to install elsewhere, `SKIP_UNITY=1` to only download.
 
@@ -39,31 +39,83 @@ A dungeon rave club kit for Unity: lighting, lasers, a DJ booth, big speakers, a
 ## Folder layout
 ```
 Assets/
-  Scripts/      C# behaviours (see below)
+  Scripts/      C# behaviours by folder (see below)
+  Editor/       DungeonSetup scene builder
+  Audio/        Generated WAV music, ambience and SFX
+  Settings/     Presets (created on first build)
   Models/       Higgsfield-generated GLB props (textured, PBR)
   Higgsfield/   Concept images: Lasers, Lighting, RedLights, Bathroom, DJBooth, Speakers, LaserControl, Camera
 Packages/manifest.json   includes glTFast and URP
 ```
 
-## Scripts
-| Script | What it does |
+## Controls
+| Key | Action |
 |---|---|
-| WelcomeScreen | Title panel with a Play button that fades out and enters player mode |
-| PlayerModeController | First-person WASD + mouse look, Shift sprint, Space jump, Esc back to menu |
-| DungeonRaveLighting | Dark ambient + fog, beat-synced color cycling on rave lights |
-| LaserShowController | LineRenderer laser beams with Fan, Scan, Spin and Strobe patterns, raycast-clipped |
-| CameraDirector | Cinematic shot cycling / orbit for the welcome screen or spectator mode, with beat shake |
-| DJBoothInteraction | Press E at the booth to cycle tracks and turn the show on or off |
-| SpeakerPulse | Speaker cones pump to the bass (audio spectrum, BPM fallback) |
-| BathroomLights | Flickering, buzzing fluorescent lights with random blackouts |
-| RedLightStrobe | Red lights in Strobe, Breathe or rotating Beacon mode, with emissive materials |
-| ScenePortal | Trigger that teleports the player or loads another scene |
+| WASD / arrows | Move |
+| Mouse | Look |
+| Shift | Sprint |
+| Space | Jump |
+| E | Interact (DJ booth, bathroom door, pills, toilet, exit door) |
+| Esc or P | Pause menu (Resume, Settings, Quit to menu) |
 
-## Quick scene setup
-1. Drag GLBs from `Assets/Models/` into the scene and add colliders.
-2. Player: a Capsule tagged `Player` with CharacterController + PlayerModeController, and the Main Camera as a child set as `cameraPivot`.
-3. UI: Canvas > Panel (with a CanvasGroup) > Button. Add WelcomeScreen and link the panel, button and player.
-4. Add a few Point/Spot lights to DungeonRaveLighting, an empty emitter with LaserShowController, and a DJ booth trigger with an AudioSource + DJBoothInteraction.
+Leave the mouse and keys alone for 20 seconds and AutoPilot walks you around the club; touch anything to take back control. Input uses the classic Input Manager (Unity's default in 2022.3).
+
+## What the scene builder makes
+`Dungeon > Build Scene` (or `-executeMethod DungeonUnity.Editor.DungeonSetup.BuildScene`) can be run again at any time. It rebuilds both scenes, reuses existing materials and presets, and skips missing models with one warning each.
+- **Welcome**: title, Enter and Quit buttons, UI sounds and a scene fade.
+- **Dungeon**: the room, stage, speakers, lasers, disco ball, rave, red and bathroom lights, smoke machines, a dancing crowd, a walking NPC with procedural legs, an interactive DJ booth, a bathroom door, a flushable toilet, trippy pills, an exit door, the player (footsteps, autopilot, trippy camera), a cinematic welcome camera, HUD prompt and crosshair, pause and settings menus, audio and beat sync, and URP post FX (bloom, vignette, chromatic aberration, colour). Post FX is skipped cleanly if URP is not active.
+
+## Presets (ScriptableObjects in Assets/Settings)
+- **DungeonConfig**: BPM, master/music/SFX/ambience volumes, feature toggles (lasers, fog, smoke, post FX, crowd, pills, autopilot), crowd count and area, and per-room palettes (light gradient, ambient, fog colour and density, laser colour, max intensity). Rooms switch when you walk into a RoomLightingZone (the bathroom has one).
+- **CharacterRigConfig**: leg length, thickness, hip width and colour, stride length, leg swing, leg lift, body bob, lean, sway, step curve, blend speed and step height.
+
+Change a preset, then run Build Scene again. Every script also exposes its own tuning in the Inspector, grouped under headers with tooltips and sliders.
+
+## Scripts (namespace DungeonUnity)
+| Folder | Script | What it does |
+|---|---|---|
+| Core | DungeonConfig, CharacterRigConfig | Preset assets described above |
+| Core | GameSettings | Volumes, sensitivity and invert Y saved in PlayerPrefs |
+| Core | InputCompat | Safe input wrapper with idle timer |
+| Audio | AudioManager | Music, ambience and named SFX with variants, pitch jitter and fades |
+| Audio | MusicBeatSync | Beat detection from the spectrum with a BPM clock fallback, exposes onBeat |
+| Lighting | DungeonRaveLighting | Ambient, fog and rave lights in Cycle, Chase, RandomOnBeat or Solid mode, with room blending |
+| Lighting | LaserShowController | Beams in Fan, Scan, Spin, Strobe or Tunnel patterns, raycast-clipped, beat-pulsed |
+| Lighting | RedLightStrobe | Strobe, Breathe, Beacon or BeatFlash with emissive renderers |
+| Lighting | BathroomLights | Flicker, blackouts and buzz |
+| Lighting | SpeakerPulse | Cones pump to the bass with glow and squash |
+| Lighting | DiscoBallSpin | Spinning ball with beat kicks and spot lights |
+| Lighting | RoomLightingZone | Trigger that switches the room palette |
+| FX | PostFXSetup | URP Volume with bloom, vignette, chromatic aberration and colour, set up by reflection so it is safe without URP |
+| FX | TrippyEffect | FOV wobble, roll and hue overlay after a pill |
+| FX | SmokeMachine | Low smoke particles with beat bursts |
+| FX | SceneFader | Fade between scenes |
+| Player | PlayerModeController | First-person movement, look, jump, sprint, head bob and step height |
+| Player | PlayerFootsteps | Distance-based footstep sounds |
+| Player | AutoPilot | Waypoint route (Sequential, PingPong, Random) with dwell and idle takeover |
+| Player | CameraDirector | Cut, Blend, Orbit or Follow shots with FOV breathing and beat shake |
+| Characters | CharacterRig, ProceduralWalk | Capsule legs and a speed-driven walk cycle |
+| Characters | CrowdDancer | Bob, Sway, Twist, Jump or Headbang on the beat |
+| Interaction | Interactable, InteractionPrompt | Look at it and press E, with an on-screen prompt |
+| Interaction | DJBoothInteraction, BathroomDoor, PillPickup, ScenePortal, SoundInteractable | Booth music toggle, door, pills, scene exit, toilet flush |
+| UI | WelcomeScreen, LoadSceneButton, PauseMenu, SettingsMenu, UISound | Menus and UI sounds |
+
+## Sounds (Assets/Audio, generated by Tools/make_audio.py)
+| File | Use |
+|---|---|
+| Music_Techno128_Loop | 30 s stereo 128 BPM techno loop (main music) |
+| Loop_Kick128, Loop_Hats128 | Stems for remixing |
+| Amb_Crowd | Club crowd ambience |
+| Amb_RoomTone | Bathroom hum |
+| SFX_Footstep_1 to 4 | Footsteps |
+| SFX_LaserZap | Laser pattern change |
+| SFX_DoorCreak | Bathroom and exit door |
+| SFX_PillPickup | Pill pickup |
+| SFX_ToiletFlush | Toilet |
+| SFX_BassDrop | Music back on at the DJ booth |
+| UI_Click, UI_Hover | Buttons |
+
+All sounds are synthesised by code (no samples), so they are free to use. Run `python3 Tools/make_audio.py` (numpy and scipy) to regenerate them.
 
 ## 3D models (Assets/Models, GLB, PBR textures)
 | File | Generator |

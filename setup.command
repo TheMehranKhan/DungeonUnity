@@ -72,7 +72,7 @@ for u in /Applications/Unity/Hub/Editor/2022.3*/Unity.app/Contents/MacOS/Unity /
 done
 if [[ -n "$UNITY" ]]; then
   say_ "Opening in $(basename $(dirname $(dirname $(dirname $(dirname "$UNITY"))))) and building the scene (first import takes a few minutes)"
-  "$UNITY" -projectPath "$DEST" -executeMethod DungeonSetup.BuildScene >/dev/null 2>&1 &
+  "$UNITY" -projectPath "$DEST" -executeMethod DungeonUnity.Editor.DungeonSetup.BuildScene >/dev/null 2>&1 &
   say_ "Unity is starting. When it finishes, open Assets/Scenes/Welcome.unity and press Play."
 elif [[ -d "/Applications/Unity Hub.app" ]]; then
   say_ "No Unity Editor found. Install 2022.3 LTS in Unity Hub, then run this again (or Add project: $DEST, then menu Dungeon > Build Scene)."
