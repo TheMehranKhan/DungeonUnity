@@ -97,6 +97,43 @@ def bassdrop():
     sub = np.sin(ph) * np.minimum(1, x / 0.02) * np.exp(-x * 0.6); dist = np.tanh(sub * 3) * 0.6
     riser = hp(rng.standard_normal(len(x)), 2000) * np.exp(-x * 4) * 0.3
     return dist + riser
+def chill():
+    """Slow ambient pad with a soft 64 bpm pulse, 16 s seamless loop."""
+    L = 16.0; x = t(L); out = np.zeros(len(x))
+    chords = [[220.0, 261.6, 329.6], [196.0, 246.9, 293.7], [174.6, 220.0, 261.6], [196.0, 246.9, 329.6]]
+    seg = len(x) // 4
+    for i, ch in enumerate(chords):
+        y = t(seg / SR); e = np.sin(np.pi * np.arange(seg) / seg) ** 0.5
+        tone = sum(np.sin(2 * np.pi * f * y + 0.5 * np.sin(2 * np.pi * 0.2 * y + j)) for j, f in enumerate(ch))
+        out[i * seg:(i + 1) * seg] += lp(tone, 1200) * e * 0.3
+    for b in range(int(L * 64 / 60)):
+        place(out, lp(kick(0.6), 200) * 0.25, b * 60 / 64)
+    out += lp(rng.standard_normal(len(x)), 3000) * 0.01 * (0.5 + 0.5 * np.sin(2 * np.pi * x / L))
+    f = int(SR * 0.02); out[:f] *= np.linspace(0, 1, f); out[-f:] *= np.linspace(1, 0, f); return out
+def house():
+    """Deep-house groove at 128 bpm for the VIP room, 8 bars."""
+    bars = 8; buf = np.zeros(int(SR * bars * 4 * BEAT) + SR); k, h, c = kick(), hat(0.12, True), clap()
+    chord = [[57, 60, 64, 67], [55, 59, 62, 65], [53, 57, 60, 64], [55, 59, 62, 67]]
+    for b in range(bars * 4):
+        at = b * BEAT; place(buf, k * 0.7, at); place(buf, h * 0.2, at + BEAT / 2)
+        if b % 2 == 1: place(buf, c * 0.25, at)
+        if b % 4 in (0, 2):
+            x = t(BEAT * 0.45); notes = chord[(b // 4) % 4]
+            stab = sum(np.sign(np.sin(2 * np.pi * 440 * 2 ** ((m - 69) / 12) * x)) for m in notes)
+            place(buf, lp(stab, 1400) * env(len(x), 0.005, 0.2, 3) * 0.05, at + BEAT * 0.5)
+        m = chord[(b // 4) % 4][0] - 24; f = 440 * 2 ** ((m - 69) / 12); x = t(BEAT * 0.4)
+        place(buf, np.sin(2 * np.pi * f * x) * env(len(x), 0.005, 0.25, 2) * 0.35, at + BEAT * 0.5)
+    out = buf[: int(SR * bars * 4 * BEAT)]; f = int(SR * 0.01); out[:f] *= np.linspace(0, 1, f); out[-f:] *= np.linspace(1, 0, f); return out
+def muffled(x): return lp(x, 350, 4) * 1.6
+def corridor_hum():
+    x = t(12); buzz = np.sign(np.sin(2 * np.pi * 60 * x)) * 0.05 + np.sin(2 * np.pi * 120 * x) * 0.1
+    flicker = (rng.random(len(x) // 2205 + 1) > 0.97).repeat(2205)[: len(x)] * 0.15
+    out = lp(buzz, 1500) * (1 + flicker) + lp(rng.standard_normal(len(x)), 200) * 0.3
+    f = int(SR * 0.3); out[:f] *= np.linspace(0, 1, f); out[-f:] *= np.linspace(1, 0, f); return out
+def drone():
+    x = t(20); out = sum(np.sin(2 * np.pi * f * x + np.sin(2 * np.pi * 0.05 * x * (i + 1))) * a for i, (f, a) in enumerate([(55, 0.4), (82.4, 0.25), (110, 0.15), (164.8, 0.08)]))
+    out = out + bp(rng.standard_normal(len(x)), 2000, 6000) * 0.01
+    f = int(SR * 0.5); out[:f] *= np.linspace(0, 1, f); out[-f:] *= np.linspace(1, 0, f); return out
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("Music_Techno128_Loop", techno(), stereo=True)
@@ -107,3 +144,9 @@ if __name__ == "__main__":
     save("UI_Click", click()); save("UI_Hover", hover())
     save("Amb_Crowd", crowd(), stereo=True); save("Amb_RoomTone", roomtone())
     save("SFX_ToiletFlush", flush()); save("SFX_BassDrop", bassdrop())
+    # Room tracks (added after the originals so their output stays identical)
+    tech = techno()
+    save("Music_Muffled_Loop", muffled(tech), stereo=True)
+    save("Music_Chill_Loop", chill(), stereo=True)
+    save("Music_VIP_House_Loop", house(), stereo=True)
+    save("Amb_CorridorHum", corridor_hum()); save("Amb_ChillDrone", drone(), stereo=True)

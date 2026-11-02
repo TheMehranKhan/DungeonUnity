@@ -42,13 +42,14 @@ namespace DungeonUnity
         void OnEnable() { Instance = this; }
         void OnDisable() { if (Instance == this) Instance = null; }
 
-        void Start()
-        {
-            if (!source && AudioManager.Instance) source = AudioManager.Instance.musicSource;
-        }
+        bool followManager;
+
+        void Start() { followManager = !source; }
 
         void Update()
         {
+            // Follow the AudioManager's active music source (it swaps during room crossfades).
+            if (followManager && AudioManager.Instance) source = AudioManager.Instance.musicSource;
             bool fired = false;
             float bass = 0f;
             bool playing = source && source.isPlaying;

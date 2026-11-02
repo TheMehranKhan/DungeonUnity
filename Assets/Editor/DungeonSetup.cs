@@ -38,6 +38,7 @@ namespace DungeonUnity.Editor
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             config = LoadOrCreate<DungeonConfig>(SettingsDir + "/DungeonConfig.asset");
             rigConfig = LoadOrCreate<CharacterRigConfig>(SettingsDir + "/CharacterRigConfig.asset");
+            if (config.AddMissingDefaultRooms()) EditorUtility.SetDirty(config);
 
             string welcome = ScenesDir + "/Welcome.unity", dungeon = ScenesDir + "/Dungeon.unity";
             BuildWelcome(welcome);
@@ -121,9 +122,15 @@ namespace DungeonUnity.Editor
             var ceilMat = Mat("SpiralPortalPattern", new Vector2(3, 2));
             Box("Floor", root, new Vector3(0, -0.25f, 0), new Vector3(30, 0.5f, 20), floorMat);
             Box("Ceiling", root, new Vector3(0, 6.25f, 0), new Vector3(30, 0.5f, 20), ceilMat);
-            Box("Wall_N", root, new Vector3(0, 3, 10.25f), new Vector3(30, 6, 0.5f), wallMat);
+            // North wall: doorway x 10.5..13.5 to the VIP corridor
+            Box("Wall_N_A", root, new Vector3(-2.25f, 3, 10.25f), new Vector3(25.5f, 6, 0.5f), wallMat);
+            Box("Wall_N_B", root, new Vector3(14.25f, 3, 10.25f), new Vector3(1.5f, 6, 0.5f), wallMat);
+            Box("Wall_N_Lintel", root, new Vector3(12f, 5f, 10.25f), new Vector3(3f, 2f, 0.5f), wallMat);
             Box("Wall_S", root, new Vector3(0, 3, -10.25f), new Vector3(30, 6, 0.5f), wallMat);
-            Box("Wall_E", root, new Vector3(15.25f, 3, 0), new Vector3(0.5f, 6, 20), wallMat);
+            // East wall: doorway z -2..2 to the Red Light Corridor
+            Box("Wall_E_A", root, new Vector3(15.25f, 3, -6), new Vector3(0.5f, 6, 8), wallMat);
+            Box("Wall_E_B", root, new Vector3(15.25f, 3, 6), new Vector3(0.5f, 6, 8), wallMat);
+            Box("Wall_E_Lintel", root, new Vector3(15.25f, 5f, 0), new Vector3(0.5f, 2f, 4), wallMat);
             Box("Wall_W", root, new Vector3(-15.25f, 3, 0), new Vector3(0.5f, 6, 20), wallMat);
             // Bathroom: partition with a doorway (z 0..2) and a hinged door
             Box("Bathroom_Wall_A", root, new Vector3(-10, 3, 6), new Vector3(0.3f, 6, 8), wallMat);
@@ -204,7 +211,11 @@ namespace DungeonUnity.Editor
             bl.transform.position = new Vector3(-12.5f, 3, 5);
             var zone = new GameObject("BathroomZone"); zone.transform.SetParent(root); zone.transform.position = new Vector3(-12.6f, 3, 5);
             var zb = zone.AddComponent<BoxCollider>(); zb.isTrigger = true; zb.size = new Vector3(5, 6, 10);
-            var rz = zone.AddComponent<RoomLightingZone>(); rz.config = config; rz.roomName = "Bathroom"; rz.exitRoomName = "DanceFloor"; rz.lighting = rave; rz.lasers = laserRoot.GetComponentsInChildren<LaserShowController>(true);
+            var allLasers = laserRoot.GetComponentsInChildren<LaserShowController>(true);
+            Zone(zone, "Bathroom", 2, Clip("Music_Muffled_Loop"), Clip("Amb_RoomTone"), new[] { bathLight }, rave, allLasers, false);
+
+            // ---------- More rooms ----------
+            BuildExtraRooms(root, systems, rave, allLasers, raveLights, reds, floorMat, wallMat, ceilMat);
             // Door in the doorway (hinge at z=0)
             var hinge = new GameObject("BathroomDoorHinge"); hinge.transform.SetParent(root); hinge.transform.position = new Vector3(-10, 0, 0.05f);
             var door = Box("BathroomDoor", hinge.transform, new Vector3(-10, 1.5f, 1), new Vector3(0.1f, 3, 1.9f), wallMat);
@@ -277,12 +288,17 @@ namespace DungeonUnity.Editor
             var steps = player.AddComponent<PlayerFootsteps>();
             steps.steps = new[] { 1, 2, 3, 4 }.Select(i => Clip("SFX_Footstep_" + i)).Where(c => c).ToArray();
             var trippy = pivot.AddComponent<TrippyEffect>();
+            AutoPilot ap = null;
             if (config.enableAutoPilot)
             {
                 var wpRoot = new GameObject("AutoPilotRoute").transform; wpRoot.SetParent(root);
-                var wps = new[] { new Vector3(0, 0, 4), new Vector3(-6, 0, 0), new Vector3(6, 0, 0), new Vector3(0, 0, -5) }
+                // Tour every room: hall -> bathroom -> VIP backstage -> red light corridor -> trippy chill room -> back
+            var wps = new[] {
+                    new Vector3(0, 0, -5), new Vector3(0, 0, 4), new Vector3(-8, 0, 1), new Vector3(-12.5f, 0, 4), new Vector3(-8, 0, 1),
+                    new Vector3(12, 0, 8), new Vector3(12, 0, 12.5f), new Vector3(12, 0, 20), new Vector3(7, 0, 23), new Vector3(12, 0, 12.5f), new Vector3(12, 0, 8),
+                    new Vector3(13, 0, 0), new Vector3(25, 0, 0), new Vector3(43, 0, 0), new Vector3(47, 0, 5), new Vector3(40, 0, -5), new Vector3(25, 0, 0), new Vector3(13, 0, 0) }
                     .Select((p, i) => { var t = new GameObject("Waypoint" + i).transform; t.SetParent(wpRoot); t.position = p; return t; }).ToArray();
-                var ap = player.AddComponent<AutoPilot>(); ap.waypoints = wps; ap.lookAtWhileDwelling = stageTarget; ap.order = AutoPilot.RouteOrder.Random;
+                ap = player.AddComponent<AutoPilot>(); ap.waypoints = wps; ap.order = AutoPilot.RouteOrder.Sequential; ap.dwellTime = 2f; ap.dwellJitter = 0.5f; ap.selfPlayOnStart = true;
             }
 
             // Post FX (URP via reflection; harmless without URP)
@@ -305,6 +321,8 @@ namespace DungeonUnity.Editor
             trippy.overlay = overlay;
             var cross = Label("Crosshair", hud.transform, "+", 48, Vector2.zero, new Vector2(60, 60));
             var promptText = Label("Prompt", hud.transform, "", 36, new Vector2(0, -120), new Vector2(1200, 60));
+            var roomLabel = Label("RoomTitle", hud.transform, "", 64, new Vector2(0, 380), new Vector2(1600, 100));
+            hud.AddComponent<RoomTitle>().label = roomLabel;
             var ip = hud.AddComponent<InteractionPrompt>(); ip.cam = pcam; ip.promptText = promptText; ip.crosshair = cross; ip.player = pmc;
 
             // Welcome overlay
@@ -316,6 +334,12 @@ namespace DungeonUnity.Editor
             var ws = wc.AddComponent<WelcomeScreen>(); ws.welcomePanel = panel; ws.playButton = play; ws.fadeGroup = group; ws.playerMode = pmc; ws.title = title;
             ws.disableOnPlay = new[] { dirGo };
             pmc.welcomePanel = panel;
+            if (config.enableIntro)
+            {
+                // On Play: cinematic shot, camera flies to the character, then player mode + self-play tour.
+                var intro = new GameObject("IntroSequence").AddComponent<IntroSequence>(); intro.transform.SetParent(systems);
+                intro.cinematicCamera = dcam; intro.player = pmc; intro.autoPilot = ap; intro.hideDuringIntro = new[] { wc };
+            }
 
             // Pause + settings
             var pc = MakeCanvas("PauseCanvas", 20);
@@ -343,6 +367,99 @@ namespace DungeonUnity.Editor
             Interact<ScenePortal>(exit, "Press {key} to leave the club", "DoorCreak").sceneName = "Welcome";
 
             EditorSceneManager.SaveScene(scene, path);
+        }
+
+        // ---------- rooms ----------
+        static RoomZone Zone(GameObject go, string room, int priority, AudioClip music, AudioClip amb, Light[] lights, DungeonRaveLighting rave, LaserShowController[] lasers, bool isDefault)
+        {
+            var z = go.AddComponent<RoomZone>(); z.config = config; z.roomName = room; z.priority = priority; z.isDefault = isDefault;
+            z.music = music; z.ambience = amb; z.roomLights = lights ?? new Light[0]; z.lighting = rave; z.lasers = lasers;
+            return z;
+        }
+
+        static GameObject ZoneBox(string name, Transform root, Vector3 center, Vector3 size)
+        {
+            var go = new GameObject(name); go.transform.SetParent(root); go.transform.position = center;
+            var b = go.AddComponent<BoxCollider>(); b.isTrigger = true; b.size = size; return go;
+        }
+
+        static void BuildExtraRooms(Transform root, Transform systems, DungeonRaveLighting rave, LaserShowController[] lasers, List<Light> hallLights, List<Light> redLights, Material floorMat, Material wallMat, Material ceilMat)
+        {
+            // Main Rave Hall (default zone, x -15..15, z -10..10)
+            Zone(ZoneBox("Zone_MainRaveHall", root, new Vector3(0, 3, 0), new Vector3(30, 6, 20)), "Main Rave Hall", 0,
+                Clip("Music_Techno128_Loop"), Clip("Amb_Crowd"), hallLights.Concat(redLights).ToArray(), rave, lasers, true);
+
+            // Red Light Corridor (x 15.5..35, z -2..2, 4 m high)
+            var cor = new GameObject("RedLightCorridor").transform; cor.SetParent(root);
+            Box("Floor", cor, new Vector3(25.25f, -0.25f, 0), new Vector3(19.5f, 0.5f, 4), floorMat);
+            Box("Ceiling", cor, new Vector3(25.25f, 4.25f, 0), new Vector3(19.5f, 0.5f, 4), ceilMat);
+            Box("Wall_N", cor, new Vector3(25.25f, 2, 2.25f), new Vector3(19.5f, 4, 0.5f), wallMat);
+            Box("Wall_S", cor, new Vector3(25.25f, 2, -2.25f), new Vector3(19.5f, 4, 0.5f), wallMat);
+            var corLights = new List<Light>(); var corRenderers = new List<Renderer>();
+            for (int i = 0; i < 4; i++)
+            {
+                var p = new Vector3(18.5f + i * 5f, 3.2f, i % 2 == 0 ? 1.9f : -1.9f);
+                var fx = Place(Models + "red_industrial_wall_light.glb", cor, p, i % 2 == 0 ? 180 : 0, 0.5f);
+                if (fx) corRenderers.AddRange(fx.GetComponentsInChildren<Renderer>());
+                corLights.Add(PointLight("CorridorRed" + i, cor, p + new Vector3(0, 0, i % 2 == 0 ? -0.4f : 0.4f), Color.red, 2.5f, 6f));
+            }
+            var cs = cor.gameObject.AddComponent<RedLightStrobe>(); cs.lights = corLights.ToArray(); cs.emissiveRenderers = corRenderers.ToArray(); cs.bpm = config.bpm;
+            Zone(ZoneBox("Zone_RedLightCorridor", root, new Vector3(25.25f, 2, 0), new Vector3(19.5f, 4, 4)), "Red Light Corridor", 1,
+                Clip("Music_Muffled_Loop"), Clip("Amb_CorridorHum"), corLights.ToArray(), rave, lasers, false);
+
+            // Trippy Chill Room (x 35..51, z -8..8)
+            var chill = new GameObject("TrippyChillRoom").transform; chill.SetParent(root);
+            Box("Floor", chill, new Vector3(43, -0.25f, 0), new Vector3(16, 0.5f, 16), floorMat);
+            Box("Ceiling", chill, new Vector3(43, 5.25f, 0), new Vector3(16, 0.5f, 16), ceilMat);
+            Box("Wall_N", chill, new Vector3(43, 2.5f, 8.25f), new Vector3(16, 5, 0.5f), wallMat);
+            Box("Wall_S", chill, new Vector3(43, 2.5f, -8.25f), new Vector3(16, 5, 0.5f), wallMat);
+            Box("Wall_E", chill, new Vector3(51.25f, 2.5f, 0), new Vector3(0.5f, 5, 16), wallMat);
+            Box("Wall_W_A", chill, new Vector3(35.25f, 2.5f, -5), new Vector3(0.5f, 5, 6), wallMat);
+            Box("Wall_W_B", chill, new Vector3(35.25f, 2.5f, 5), new Vector3(0.5f, 5, 6), wallMat);
+            Box("Wall_W_Lintel", chill, new Vector3(35.25f, 4.5f, 0), new Vector3(0.5f, 1, 4), wallMat);
+            var chillLights = new List<Light>();
+            Color[] chillCols = { new Color(0.4f, 0.1f, 1f), new Color(0.1f, 1f, 0.8f), new Color(1f, 0.2f, 0.8f), new Color(0.2f, 0.5f, 1f) };
+            for (int i = 0; i < 4; i++) chillLights.Add(PointLight("ChillGlow" + i, chill, new Vector3(39 + (i % 2) * 8, 3.5f, i < 2 ? -4 : 4), chillCols[i], 1.8f, 9f));
+            foreach (var (n, p, sc) in new[] { ("LavaLamp", new Vector3(37, 0, 6), 1.2f), ("LavaLamp", new Vector3(49, 0, -6), 1.2f), ("MeltingMushroom", new Vector3(47, 0, 6), 1.8f), ("FloatingEyeball", new Vector3(43, 3.5f, 0), 1.2f), ("CrystalTotem", new Vector3(49, 0, 6), 1.6f) })
+                Place(Psy + n + ".glb", chill, p, 0, sc);
+            for (int i = 0; i < 3; i++) Box("Beanbag" + i, chill, new Vector3(40 + i * 3, 0.3f, -6.5f), new Vector3(1.4f, 0.6f, 1.2f), ceilMat);
+            if (config.enableSmoke) { var sm = new GameObject("ChillSmoke"); sm.transform.SetParent(chill); sm.transform.position = new Vector3(43, 0.2f, 0); sm.AddComponent<ParticleSystem>(); sm.AddComponent<SmokeMachine>(); }
+            Zone(ZoneBox("Zone_TrippyChillRoom", root, new Vector3(43, 2.5f, 0), new Vector3(16, 5, 16)), "Trippy Chill Room", 1,
+                Clip("Music_Chill_Loop"), Clip("Amb_ChillDrone"), chillLights.ToArray(), rave, lasers, false);
+
+            // VIP Backstage: short corridor (x 10.5..13.5, z 10.5..14) behind a door, room x 4..20, z 14..26
+            var vip = new GameObject("VIPBackstage").transform; vip.SetParent(root);
+            Box("Corridor_Floor", vip, new Vector3(12, -0.25f, 12.25f), new Vector3(3, 0.5f, 3.5f), floorMat);
+            Box("Corridor_Ceiling", vip, new Vector3(12, 4.25f, 12.25f), new Vector3(3, 0.5f, 3.5f), ceilMat);
+            Box("Corridor_Wall_W", vip, new Vector3(10.25f, 2, 12.25f), new Vector3(0.5f, 4, 3.5f), wallMat);
+            Box("Corridor_Wall_E", vip, new Vector3(13.75f, 2, 12.25f), new Vector3(0.5f, 4, 3.5f), wallMat);
+            Box("Floor", vip, new Vector3(12, -0.25f, 20), new Vector3(16, 0.5f, 12), floorMat);
+            Box("Ceiling", vip, new Vector3(12, 5.25f, 20), new Vector3(16, 0.5f, 12), ceilMat);
+            Box("Wall_N", vip, new Vector3(12, 2.5f, 26.25f), new Vector3(16, 5, 0.5f), wallMat);
+            Box("Wall_W", vip, new Vector3(3.75f, 2.5f, 20), new Vector3(0.5f, 5, 12), wallMat);
+            Box("Wall_E", vip, new Vector3(20.25f, 2.5f, 20), new Vector3(0.5f, 5, 12), wallMat);
+            Box("Wall_S_A", vip, new Vector3(7.25f, 2.5f, 13.75f), new Vector3(6.5f, 5, 0.5f), wallMat);
+            Box("Wall_S_B", vip, new Vector3(16.75f, 2.5f, 13.75f), new Vector3(6.5f, 5, 0.5f), wallMat);
+            Box("Wall_S_Lintel", vip, new Vector3(12, 4.5f, 13.75f), new Vector3(3, 1, 0.5f), wallMat);
+            // VIP door (hinged at x 10.5, swings into the room)
+            var vh = new GameObject("VIPDoorHinge"); vh.transform.SetParent(vip); vh.transform.position = new Vector3(10.55f, 0, 14.1f);
+            var vd = Box("VIPDoor", vh.transform, new Vector3(12, 1.5f, 14.1f), new Vector3(2.9f, 3, 0.1f), wallMat);
+            Object.DestroyImmediate(vd.GetComponent<Collider>());
+            var vcol = vh.AddComponent<BoxCollider>(); vcol.center = new Vector3(1.45f, 1.5f, 0); vcol.size = new Vector3(2.9f, 3, 0.2f);
+            var vdoor = vh.AddComponent<BathroomDoor>(); vdoor.hinge = vh.transform; vdoor.openAngle = -95f; vdoor.prompt = "Press {key} to open/close the VIP door"; vdoor.sfx = "DoorCreak"; vdoor.autoClose = 12f;
+            var vipLights = new List<Light>();
+            for (int i = 0; i < 3; i++) vipLights.Add(SpotLight("VIPSpot" + i, vip, new Vector3(6 + i * 6, 4.9f, 21), new Vector3(90, 0, 0), new Color(1f, 0.7f, 0.25f), 3f));
+            vipLights.Add(PointLight("VIPGlow", vip, new Vector3(12, 3, 24), new Color(1f, 0.25f, 0.5f), 2f, 10f));
+            Box("VIP_Couch", vip, new Vector3(12, 0.4f, 25), new Vector3(6, 0.8f, 1.2f), floorMat);
+            Box("VIP_Table", vip, new Vector3(12, 0.35f, 22.5f), new Vector3(2, 0.7f, 1), wallMat);
+            Place(Models + "speaker_stack.glb", vip, new Vector3(5.5f, 0, 25), 160, 2.5f);
+            Place(Psy + "CrystalTotem.glb", vip, new Vector3(18.5f, 0, 25), 0, 1.8f);
+            var vb = Place(Psy + "Bouncer.glb", vip, new Vector3(14.5f, 0, 15.5f), 200, 1.9f);
+            if (vb) { var d = vb.AddComponent<CrowdDancer>(); d.style = CrowdDancer.DanceStyle.Bob; d.bobHeight = 0.02f; }
+            Zone(ZoneBox("Zone_VIPBackstage", root, new Vector3(12, 2.5f, 20), new Vector3(16, 5, 12)), "VIP Backstage", 1,
+                Clip("Music_VIP_House_Loop"), Clip("Amb_Crowd"), vipLights.ToArray(), rave, lasers, false);
+            Zone(ZoneBox("Zone_VIPCorridor", root, new Vector3(12, 2, 12.25f), new Vector3(3, 4, 3.5f)), "Corridor", 1,
+                Clip("Music_Muffled_Loop"), Clip("Amb_CorridorHum"), new Light[0], rave, lasers, false).displayName = "Backstage Corridor";
         }
 
         // ---------- helpers ----------

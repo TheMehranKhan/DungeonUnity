@@ -24,7 +24,17 @@ namespace DungeonUnity
             t = target = startOpen ? 1f : 0f; Apply();
         }
 
-        protected override void OnInteract(GameObject user) { target = IsOpen ? 0f : 1f; openedAt = Time.time; }
+        protected override void OnInteract(GameObject user) { SetOpen(!IsOpen); }
+
+        /// Opens or closes the door from code (AutoPilot, triggers). Plays the creak when the state changes.
+        public void SetOpen(bool open)
+        {
+            if (open == IsOpen) { if (open) openedAt = Time.time; return; }
+            target = open ? 1f : 0f; openedAt = Time.time;
+            if (!string.IsNullOrEmpty(sfx)) AudioManager.Play(sfx, transform.position, 0.8f);
+        }
+        public void Open() => SetOpen(true);
+        public void Close() => SetOpen(false);
 
         void Update()
         {

@@ -10,7 +10,7 @@ namespace DungeonUnity
         [Header("Lights")]
         public Light[] raveLights = new Light[0];
         [Tooltip("Optional preset; its first room's palette is used at start.")] public DungeonConfig config;
-        [Tooltip("Room name looked up in the config at start.")] public string startRoom = "DanceFloor";
+        [Tooltip("Room name looked up in the config at start.")] public string startRoom = "Main Rave Hall";
 
         [Header("Colour")]
         public ColorMode colorMode = ColorMode.Cycle;

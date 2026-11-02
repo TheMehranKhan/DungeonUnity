@@ -17,6 +17,7 @@ namespace DungeonUnity
         [Range(0.1f, 2f), Tooltip("Metres per full step cycle.")] public float strideLength = 0.9f;
         [Range(0f, 80f), Tooltip("Max leg swing angle.")] public float legSwingDegrees = 30f;
         [Range(0f, 0.4f), Tooltip("How high feet lift (knee-bend proxy).")] public float legLift = 0.08f;
+        [Range(0f, 120f), Tooltip("Knee bend during the swing phase (rigs with knees).")] public float kneeBendDegrees = 35f;
         [Range(0f, 0.2f), Tooltip("Vertical body bob per step.")] public float bodyBob = 0.04f;
         [Range(0f, 20f), Tooltip("Forward lean at full speed.")] public float leanDegrees = 6f;
         [Range(0f, 15f), Tooltip("Side-to-side hip sway.")] public float swayDegrees = 3f;

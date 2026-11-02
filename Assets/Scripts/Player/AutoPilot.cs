@@ -24,19 +24,39 @@ namespace DungeonUnity
         [Tooltip("Only drive the player after this many seconds without input.")] public bool requireIdle = true;
         [Range(1f, 300f)] public float idleTimeout = 20f;
         [Tooltip("Start driving immediately (NPCs).")] public bool alwaysOn = false;
+        [Tooltip("Player: start the self-play tour as soon as player mode starts, before any idle time. Any input hands control back.")] public bool selfPlayOnStart = true;
+        [Range(0f, 3f), Tooltip("Grace seconds after self-play starts before input can cancel it.")] public float selfPlayGrace = 1f;
+
+        [Header("Doors")]
+        [Tooltip("Open closed doors near the walker so the tour can pass between rooms.")] public bool openDoors = true;
+        [Range(0.5f, 6f)] public float doorOpenDistance = 2.5f;
 
         PlayerModeController player; CharacterController cc;
         int index, dir = 1; float dwellUntil; bool dwelling;
+        bool selfPlay; float selfPlayStart = -1f; BathroomDoor[] doors;
         public bool Driving { get; private set; }
 
         void Awake() { player = GetComponent<PlayerModeController>(); cc = GetComponent<CharacterController>(); }
+        void Start() { doors = FindObjectsOfType<BathroomDoor>(); selfPlay = selfPlayOnStart; }
+
+        /// Starts (or restarts) the self-play tour now, regardless of idle time.
+        public void BeginSelfPlay() { selfPlay = true; selfPlayStart = -1f; }
 
         void Update()
         {
             if (waypoints == null || waypoints.Length == 0) { Stop(); return; }
-            bool want = alwaysOn || (player && player.Active && !player.Paused && (!requireIdle || InputCompat.IdleSeconds > idleTimeout));
+            if (selfPlay && player && player.Active)
+            {
+                if (selfPlayStart < 0f) selfPlayStart = Time.time;
+                else if (Time.time - selfPlayStart > selfPlayGrace && InputCompat.IdleSeconds < 0.1f) selfPlay = false; // player took over
+            }
+            bool want = alwaysOn || (player && player.Active && !player.Paused && (selfPlay || !requireIdle || InputCompat.IdleSeconds > idleTimeout));
             if (!want) { Stop(); return; }
             if (!Driving) { Driving = true; if (player) player.ExternalControl = true; }
+
+            if (openDoors && doors != null)
+                foreach (var d in doors)
+                    if (d && !d.IsOpen && (d.transform.position - transform.position).sqrMagnitude < doorOpenDistance * doorOpenDistance) d.Open();
 
             var target = waypoints[Mathf.Clamp(index, 0, waypoints.Length - 1)];
             if (!target) { Advance(); return; }

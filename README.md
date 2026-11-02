@@ -58,16 +58,23 @@ Packages/manifest.json   includes glTFast and URP
 | E | Interact (DJ booth, bathroom door, pills, toilet, exit door) |
 | Esc or P | Pause menu (Resume, Settings, Quit to menu) |
 
-Leave the mouse and keys alone for 20 seconds and AutoPilot walks you around the club; touch anything to take back control. Input uses the classic Input Manager (Unity's default in 2022.3).
+Press Play and the intro camera flies from a wide shot down to your character, then self-play starts right away: AutoPilot tours every room (opening doors on the way). Touch any key or the mouse to take control; leave it alone for 20 seconds and the tour resumes. Turn the intro off with DungeonConfig > Enable Intro. Input uses the classic Input Manager (Unity's default in 2022.3).
 
 ## What the scene builder makes
 `Dungeon > Build Scene` (or `-executeMethod DungeonUnity.Editor.DungeonSetup.BuildScene`) can be run again at any time. It rebuilds both scenes, reuses existing materials and presets, and skips missing models with one warning each.
 - **Welcome**: title, Enter and Quit buttons, UI sounds and a scene fade.
-- **Dungeon**: the room, stage, speakers, lasers, disco ball, rave, red and bathroom lights, smoke machines, a dancing crowd, a walking NPC with procedural legs, an interactive DJ booth, a bathroom door, a flushable toilet, trippy pills, an exit door, the player (footsteps, autopilot, trippy camera), a cinematic welcome camera, HUD prompt and crosshair, pause and settings menus, audio and beat sync, and URP post FX (bloom, vignette, chromatic aberration, colour). Post FX is skipped cleanly if URP is not active.
+- **Dungeon**: five rooms joined by doorways, corridors and doors: **Main Rave Hall**, **Bathroom** (door), **Red Light Corridor** (east), **Trippy Chill Room** (end of the corridor) and **VIP Backstage** (north, behind a door). Each room has a RoomZone that crossfades its own music and ambience and fades its lights and palette in. Also: the stage, stage, speakers, lasers, disco ball, rave, red and bathroom lights, smoke machines, a dancing crowd, a walking NPC with procedural legs, an interactive DJ booth, a bathroom door, a flushable toilet, trippy pills, an exit door, the player (footsteps, autopilot, trippy camera), a cinematic welcome camera, HUD prompt and crosshair, pause and settings menus, audio and beat sync, and URP post FX (bloom, vignette, chromatic aberration, colour). Post FX is skipped cleanly if URP is not active.
 
 ## Presets (ScriptableObjects in Assets/Settings)
-- **DungeonConfig**: BPM, master/music/SFX/ambience volumes, feature toggles (lasers, fog, smoke, post FX, crowd, pills, autopilot), crowd count and area, and per-room palettes (light gradient, ambient, fog colour and density, laser colour, max intensity). Rooms switch when you walk into a RoomLightingZone (the bathroom has one).
-- **CharacterRigConfig**: leg length, thickness, hip width and colour, stride length, leg swing, leg lift, body bob, lean, sway, step curve, blend speed and step height.
+- **DungeonConfig**: BPM, master/music/SFX/ambience volumes, feature toggles (lasers, fog, smoke, post FX, crowd, pills, autopilot), crowd count and area, and per-room palettes (light gradient, ambient, fog colour and density, laser colour, max intensity). Palettes are matched by name to each RoomZone; missing defaults are added on Build Scene without touching your edits. Also the Enable Intro toggle.
+- **CharacterRigConfig**: leg length, thickness, hip width and colour, stride length, leg swing, leg lift, body bob, lean, sway, step curve, knee bend, blend speed and step height.
+
+## Your own character (body + legs)
+Open `Dungeon > Character Rig Setup`. Pick the Target (e.g. the Player or Wanderer) and drag your model (GLB/FBX/prefab) into Character model. Press **Auto-detect legs by name** or drag the pelvis, body and left/right upper and lower legs into the slots yourself, then press **Rig It**. It works with:
+- rigged models (bones named thigh/upleg/calf/shin/knee etc., Mixamo names included),
+- static GLBs whose legs are separate meshes (each part gets a hip/knee pivot),
+- a single static body+legs mesh: it is split at the crotch (auto or set by slider) into body, upper and lower legs with hip and knee pivots; split meshes are saved in Assets/Generated/Rigs. Turn on Read/Write in the model import settings for this.
+Rig It adds ProceduralWalk (and a CharacterController if missing). You can also set CharacterRig's Character slot directly in the Inspector; it rigs itself on Awake.
 
 Change a preset, then run Build Scene again. Every script also exposes its own tuning in the Inspector, grouped under headers with tooltips and sliders.
 
@@ -77,7 +84,7 @@ Change a preset, then run Build Scene again. Every script also exposes its own t
 | Core | DungeonConfig, CharacterRigConfig | Preset assets described above |
 | Core | GameSettings | Volumes, sensitivity and invert Y saved in PlayerPrefs |
 | Core | InputCompat | Safe input wrapper with idle timer |
-| Audio | AudioManager | Music, ambience and named SFX with variants, pitch jitter and fades |
+| Audio | AudioManager | Music, ambience and named SFX with variants, pitch jitter, fades and equal-power crossfades |
 | Audio | MusicBeatSync | Beat detection from the spectrum with a BPM clock fallback, exposes onBeat |
 | Lighting | DungeonRaveLighting | Ambient, fog and rave lights in Cycle, Chase, RandomOnBeat or Solid mode, with room blending |
 | Lighting | LaserShowController | Beams in Fan, Scan, Spin, Strobe or Tunnel patterns, raycast-clipped, beat-pulsed |
@@ -85,16 +92,19 @@ Change a preset, then run Build Scene again. Every script also exposes its own t
 | Lighting | BathroomLights | Flicker, blackouts and buzz |
 | Lighting | SpeakerPulse | Cones pump to the bass with glow and squash |
 | Lighting | DiscoBallSpin | Spinning ball with beat kicks and spot lights |
-| Lighting | RoomLightingZone | Trigger that switches the room palette |
+| Lighting | RoomZone | Room trigger: crossfades music and ambience, fades room lights, applies the palette and lasers |
 | FX | PostFXSetup | URP Volume with bloom, vignette, chromatic aberration and colour, set up by reflection so it is safe without URP |
 | FX | TrippyEffect | FOV wobble, roll and hue overlay after a pill |
 | FX | SmokeMachine | Low smoke particles with beat bursts |
 | FX | SceneFader | Fade between scenes |
 | Player | PlayerModeController | First-person movement, look, jump, sprint, head bob and step height |
 | Player | PlayerFootsteps | Distance-based footstep sounds |
-| Player | AutoPilot | Waypoint route (Sequential, PingPong, Random) with dwell and idle takeover |
+| Player | AutoPilot | Waypoint route (Sequential, PingPong, Random) with dwell, self-play on start, idle takeover and door opening |
+| Player | IntroSequence | Camera flies along an arc to the character on Play, then starts player mode and self-play |
 | Player | CameraDirector | Cut, Blend, Orbit or Follow shots with FOV breathing and beat shake |
-| Characters | CharacterRig, ProceduralWalk | Capsule legs and a speed-driven walk cycle |
+| Characters | CharacterRig, ProceduralWalk, RigUtility | Character slot, leg detection, static mesh splitting or capsule legs, and a speed-driven walk with knees |
+| UI | RoomTitle | Shows the room name when you walk in |
+| Editor | DungeonSetup, CharacterRigWindow | Build Scene; Character Rig Setup window and CharacterRig inspector buttons |
 | Characters | CrowdDancer | Bob, Sway, Twist, Jump or Headbang on the beat |
 | Interaction | Interactable, InteractionPrompt | Look at it and press E, with an on-screen prompt |
 | Interaction | DJBoothInteraction, BathroomDoor, PillPickup, ScenePortal, SoundInteractable | Booth music toggle, door, pills, scene exit, toilet flush |
