@@ -63,10 +63,10 @@ Press Play and the intro camera flies from a wide shot down to your character, t
 ## What the scene builder makes
 `Dungeon > Build Scene` (or `-executeMethod DungeonUnity.Editor.DungeonSetup.BuildScene`) can be run again at any time. It rebuilds both scenes, reuses existing materials and presets, and skips missing models with one warning each.
 - **Welcome**: title, Enter and Quit buttons, UI sounds and a scene fade.
-- **Dungeon**: five rooms joined by doorways, corridors and doors: **Main Rave Hall**, **Bathroom** (door), **Red Light Corridor** (east), **Trippy Chill Room** (end of the corridor) and **VIP Backstage** (north, behind a door). Each room has a RoomZone that crossfades its own music and ambience and fades its lights and palette in. Also: the stage, stage, speakers, lasers, disco ball, rave, red and bathroom lights, smoke machines, a dancing crowd, a walking NPC with procedural legs, an interactive DJ booth, a bathroom door, a flushable toilet, trippy pills, an exit door, the player (footsteps, autopilot, trippy camera), a cinematic welcome camera, HUD prompt and crosshair, pause and settings menus, audio and beat sync, and URP post FX (bloom, vignette, chromatic aberration, colour). Post FX is skipped cleanly if URP is not active.
+- **Dungeon**: five rooms joined by doorways, corridors and doors: **Main Rave Hall**, **Bathroom** (door), **Red Light Corridor** (east), **Trippy Chill Room** (end of the corridor) and **VIP Backstage** (north, behind a door). Each room has a RoomZone that crossfades its own music and fades its lights and palette in. Also: the stage, stage, speakers, lasers, disco ball, rave, red and bathroom lights, a dancing crowd, a walking NPC with procedural legs, an interactive DJ booth, a bathroom door, a flushable toilet, trippy pills, an exit door, the player (footsteps, autopilot, trippy camera), a cinematic welcome camera, HUD prompt and crosshair, pause and settings menus, audio and beat sync, and URP post FX (bloom, vignette, chromatic aberration, colour). Post FX is skipped cleanly if URP is not active.
 
 ## Presets (ScriptableObjects in Assets/Settings)
-- **DungeonConfig**: BPM, master/music/SFX/ambience volumes, feature toggles (lasers, fog, smoke, post FX, crowd, pills, autopilot), crowd count and area, and per-room palettes (light gradient, ambient, fog colour and density, laser colour, max intensity). Palettes are matched by name to each RoomZone; missing defaults are added on Build Scene without touching your edits. Also the Enable Intro toggle.
+- **DungeonConfig**: BPM, master/music/SFX volumes, feature toggles (lasers, post FX, crowd, pills, autopilot), crowd count and area, and per-room palettes (light gradient, ambient, laser colour, max intensity). Palettes are matched by name to each RoomZone; missing defaults are added on Build Scene without touching your edits. Also the Enable Intro toggle.
 - **CharacterRigConfig**: leg length, thickness, hip width and colour, stride length, leg swing, leg lift, body bob, lean, sway, step curve, knee bend, blend speed and step height.
 
 ## Your own character (body + legs)
@@ -86,7 +86,7 @@ Change a preset, then run Build Scene again. Every script also exposes its own t
 | Core | InputCompat | Safe input wrapper with idle timer |
 | Audio | AudioManager | Music, ambience and named SFX with variants, pitch jitter, fades and equal-power crossfades |
 | Audio | MusicBeatSync | Beat detection from the spectrum with a BPM clock fallback, exposes onBeat |
-| Lighting | DungeonRaveLighting | Ambient, fog and rave lights in Cycle, Chase, RandomOnBeat or Solid mode, with room blending |
+| Lighting | DungeonRaveLighting | Ambient light and rave lights in Cycle, Chase, RandomOnBeat or Solid mode, with room blending |
 | Lighting | LaserShowController | Beams in Fan, Scan, Spin, Strobe or Tunnel patterns, raycast-clipped, beat-pulsed |
 | Lighting | RedLightStrobe | Strobe, Breathe, Beacon or BeatFlash with emissive renderers |
 | Lighting | BathroomLights | Flicker, blackouts and buzz |
@@ -95,7 +95,6 @@ Change a preset, then run Build Scene again. Every script also exposes its own t
 | Lighting | RoomZone | Room trigger: crossfades music and ambience, fades room lights, applies the palette and lasers |
 | FX | PostFXSetup | URP Volume with bloom, vignette, chromatic aberration and colour, set up by reflection so it is safe without URP |
 | FX | TrippyEffect | FOV wobble, roll and hue overlay after a pill |
-| FX | SmokeMachine | Low smoke particles with beat bursts |
 | FX | SceneFader | Fade between scenes |
 | Player | PlayerModeController | First-person movement, look, jump, sprint, head bob and step height |
 | Player | PlayerFootsteps | Distance-based footstep sounds |
@@ -115,8 +114,6 @@ Change a preset, then run Build Scene again. Every script also exposes its own t
 |---|---|
 | Music_Techno128_Loop | 30 s stereo 128 BPM techno loop (main music) |
 | Loop_Kick128, Loop_Hats128 | Stems for remixing |
-| Amb_Crowd | Club crowd ambience |
-| Amb_RoomTone | Bathroom hum |
 | SFX_Footstep_1 to 4 | Footsteps |
 | SFX_LaserZap | Laser pattern change |
 | SFX_DoorCreak | Bathroom and exit door |
@@ -140,3 +137,13 @@ All sounds are synthesised by code (no samples), so they are free to use. Run `p
 | metal_crate_barrier.glb | Tripo 3D (textured, PBR) |
 
 These import through glTFast (`com.unity.cloud.gltfast`, already in `Packages/manifest.json`). Each file is roughly 45 MB because the PBR textures are embedded, so you can lower the texture size in each texture's import settings. Scale and orientation can vary between models, so adjust each prefab's transform after dropping it in.
+
+## Lighting & rooms upgrade (URP)
+
+`Dungeon > Improve Lighting & Rooms` (also run by Build Scene) gives every RoomZone a **RoomLightingRig**: key light with soft shadows, fill and rim lights, glowing neon strips on the floor and ceiling edges, a box-projected reflection probe and a light probe grid. It brightens ambient light (trilight), sets up the URP Volume (bloom, ACES tonemapping, exposure, colour, vignette), and adds metal **door frames** with glowing trims, a door light and a **DoorwayTrigger** that swings doors open smoothly when someone walks in and closes them when the doorway is empty (trims go pink when closed, green when open).
+Tweak everything in `Assets/Settings/DungeonLightingConfig.asset` (sliders, colours, toggles, one look per room) and run the menu again. Right-click a RoomLightingRig > Rebuild Lighting to redo a single room. `Dungeon > Fix Magenta Materials` converts any leftover built-in materials to URP Lit.
+Smoke, fog and the ambience sound layer were removed; music and room SFX stay.
+
+## Adding characters
+
+Drop GLB files into `Assets/Models/Characters` and run `Dungeon > Import Characters` (Build Scene does it too). Each one is added to the **CharacterRoster** in the Dungeon scene, auto-rigged (body + legs) by CharacterRig on Play, and wanders its room with ProceduralWalk + AutoPilot. Per character you can set room, count, height, yaw, rig source, leg split, walk speed and dwell time. For single-mesh models enable Read/Write on the import so the legs can be split; otherwise generated legs are used.

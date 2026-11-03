@@ -142,11 +142,11 @@ if __name__ == "__main__":
     for i in range(4): save(f"SFX_Footstep_{i+1}", footstep(i))
     save("SFX_DoorCreak", creak()); save("SFX_PillPickup", pickup())
     save("UI_Click", click()); save("UI_Hover", hover())
-    save("Amb_Crowd", crowd(), stereo=True); save("Amb_RoomTone", roomtone())
+    pass  # ambience removed
     save("SFX_ToiletFlush", flush()); save("SFX_BassDrop", bassdrop())
     # Room tracks (added after the originals so their output stays identical)
     tech = techno()
     save("Music_Muffled_Loop", muffled(tech), stereo=True)
     save("Music_Chill_Loop", chill(), stereo=True)
     save("Music_VIP_House_Loop", house(), stereo=True)
-    save("Amb_CorridorHum", corridor_hum()); save("Amb_ChillDrone", drone(), stereo=True)
+    pass  # ambience removed

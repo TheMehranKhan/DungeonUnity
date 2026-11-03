@@ -37,7 +37,7 @@ namespace DungeonUnity
                 if (flicker && !blackout && Random.value < flickerChance) i *= Random.Range(flickerMin, 0.6f);
                 l.intensity = i;
             }
-            if (buzz) buzz.volume = blackout ? 0f : buzzVolume * GameSettings.Ambience;
+            if (buzz) buzz.volume = blackout ? 0f : buzzVolume * GameSettings.Sfx;
         }
     }
 }

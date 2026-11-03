@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace DungeonUnity
 {
-    /// Dark dungeon ambience plus beat-synced colour cycling across a set of lights.
+    /// Room ambient light plus beat-synced colour cycling across a set of lights.
     public class DungeonRaveLighting : MonoBehaviour
     {
         public enum ColorMode { Cycle, Chase, RandomOnBeat, Solid }
@@ -27,14 +27,13 @@ namespace DungeonUnity
         [Header("Atmosphere")]
         public bool applyAmbient = true;
         public Color ambient = new Color(0.03f, 0.02f, 0.05f);
-        public bool fog = true;
-        public Color fogColor = new Color(0.05f, 0.02f, 0.08f);
-        [Range(0f, 0.2f)] public float fogDensity = 0.04f;
+        [Range(0f, 10f), Tooltip("Multiplies every room's ambient colour (DungeonLightingConfig sets this).")] public float ambientBoost = 1f;
+        [Tooltip("Use a trilight gradient (brighter ceiling, darker floor) instead of flat ambient.")] public bool trilight = true;
         [Range(0.1f, 10f), Tooltip("Seconds to blend when a room palette changes.")] public float roomBlendSeconds = 1.5f;
 
         Color[] randomColors;
         int lastBeat = -1;
-        Color ambientFrom, fogFrom; float blendT = 1f;
+        Color ambientFrom; float blendT = 1f;
 
         void OnValidate() { if (maxIntensity < minIntensity) maxIntensity = minIntensity; }
 
@@ -50,8 +49,8 @@ namespace DungeonUnity
         public void ApplyRoom(RoomPalette r, bool instant = false)
         {
             if (r == null) return;
-            ambientFrom = RenderSettings.ambientLight; fogFrom = RenderSettings.fogColor;
-            palette = r.lightColors ?? palette; ambient = r.ambient; fogColor = r.fogColor; fogDensity = r.fogDensity; maxIntensity = r.maxIntensity;
+            ambientFrom = RenderSettings.ambientLight;
+            palette = r.lightColors ?? palette; ambient = r.ambient; maxIntensity = r.maxIntensity;
             blendT = instant ? 1f : 0f;
         }
 
@@ -59,11 +58,16 @@ namespace DungeonUnity
         {
             if (applyAmbient)
             {
-                RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-                RenderSettings.ambientLight = Color.Lerp(ambientFrom, ambient, k);
+                var c = Color.Lerp(ambientFrom, ambient * ambientBoost, k);
+                if (trilight)
+                {
+                    RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+                    RenderSettings.ambientSkyColor = c * 1.4f; RenderSettings.ambientEquatorColor = c; RenderSettings.ambientGroundColor = c * 0.5f;
+                }
+                else RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+                RenderSettings.ambientLight = c;
             }
-            RenderSettings.fog = fog;
-            if (fog) { RenderSettings.fogMode = FogMode.ExponentialSquared; RenderSettings.fogColor = Color.Lerp(fogFrom, fogColor, k); RenderSettings.fogDensity = fogDensity; }
+            RenderSettings.fog = false; // fog/smoke removed
         }
 
         void Update()

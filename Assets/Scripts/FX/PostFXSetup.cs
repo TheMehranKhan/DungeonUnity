@@ -27,6 +27,11 @@ namespace DungeonUnity
         [Range(-100f, 100f)] public float contrast = 15f;
         [Range(-180f, 180f)] public float hueShift = 0f;
 
+        [Header("Tonemapping & exposure")]
+        public bool tonemapping = true;
+        [Tooltip("URP tonemapping mode: None, Neutral or ACES.")] public string tonemappingMode = "ACES";
+        [Range(-3f, 3f), Tooltip("Post exposure in EV (Color Adjustments).")] public float postExposure = 0.4f;
+
         [Header("Cameras")]
         [Tooltip("Turn on post-processing on these cameras (URP).")] public Camera[] cameras = new Camera[0];
 
@@ -56,7 +61,8 @@ namespace DungeonUnity
                 if (bloom) { var b = Add("UnityEngine.Rendering.Universal.Bloom" + U); Set(b, "intensity", bloomIntensity); Set(b, "threshold", bloomThreshold); Set(b, "scatter", bloomScatter); }
                 if (vignette) { var v = Add("UnityEngine.Rendering.Universal.Vignette" + U); Set(v, "intensity", vignetteIntensity); }
                 if (chromaticAberration) { chroma = Add("UnityEngine.Rendering.Universal.ChromaticAberration" + U); Set(chroma, "intensity", chromaticIntensity); }
-                if (colorAdjustments) { colorAdjust = Add("UnityEngine.Rendering.Universal.ColorAdjustments" + U); Set(colorAdjust, "saturation", saturation); Set(colorAdjust, "contrast", contrast); Set(colorAdjust, "hueShift", hueShift); }
+                if (colorAdjustments) { colorAdjust = Add("UnityEngine.Rendering.Universal.ColorAdjustments" + U); Set(colorAdjust, "saturation", saturation); Set(colorAdjust, "contrast", contrast); Set(colorAdjust, "hueShift", hueShift); Set(colorAdjust, "postExposure", postExposure); }
+                if (tonemapping) { var tm = Add("UnityEngine.Rendering.Universal.Tonemapping" + U); SetEnum(tm, "mode", tonemappingMode); }
                 var camDataT = T("UnityEngine.Rendering.Universal.UniversalAdditionalCameraData" + U);
                 if (camDataT != null)
                     foreach (var cam in cameras)
@@ -95,6 +101,15 @@ namespace DungeonUnity
             var param = comp.GetType().GetField(field)?.GetValue(comp); if (param == null) return;
             param.GetType().GetProperty("overrideState")?.SetValue(param, true);
             param.GetType().GetProperty("value")?.SetValue(param, value);
+        }
+
+        static void SetEnum(UnityEngine.Object comp, string field, string enumName)
+        {
+            if (!comp) return;
+            var param = comp.GetType().GetField(field)?.GetValue(comp); if (param == null) return;
+            var vp = param.GetType().GetProperty("value"); if (vp == null || !vp.PropertyType.IsEnum) return;
+            try { vp.SetValue(param, Enum.Parse(vp.PropertyType, enumName, true)); param.GetType().GetProperty("overrideState")?.SetValue(param, true); }
+            catch (ArgumentException) { Debug.LogWarning("[PostFXSetup] Unknown tonemapping mode " + enumName); }
         }
 
         /// Used by TrippyEffect to push hue/chromatic while tripping. Safe no-op without URP.

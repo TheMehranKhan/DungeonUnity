@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DungeonUnity
 {
-    /// Trigger volume for one room. When the player enters it crossfades the music, the ambience and the
+    /// Trigger volume for one room. When the player enters it crossfades the music and the
     /// lighting (palette from DungeonConfig, local room lights, lasers) to this room. Zones stack, so
     /// leaving a corridor that overlaps a room falls back to the room you are still standing in.
     [RequireComponent(typeof(BoxCollider))]
@@ -26,13 +26,11 @@ namespace DungeonUnity
         [Header("Audio")]
         public bool changeMusic = true;
         [Tooltip("Music loop for this room. Empty with changeMusic on = silence.")] public AudioClip music;
-        public bool changeAmbience = true;
-        public AudioClip ambience;
         [Range(-1f, 10f), Tooltip("Crossfade seconds (-1 = AudioManager default).")] public float crossfadeSeconds = -1f;
 
         [Header("Lighting")]
         public DungeonConfig config;
-        [Tooltip("Global rave lighting that blends ambient, fog and palette.")] public DungeonRaveLighting lighting;
+        [Tooltip("Global rave lighting that blends ambient light and palette.")] public DungeonRaveLighting lighting;
         [Tooltip("Lights that belong to this room. They fade up when you enter and down when you leave.")] public Light[] roomLights = new Light[0];
         [Range(0f, 1f), Tooltip("Room light intensity while you are elsewhere (fraction of their normal value).")] public float idleLightFraction = 0.35f;
         [Range(0.05f, 10f)] public float lightFadeSeconds = 1.5f;
@@ -92,7 +90,6 @@ namespace DungeonUnity
             {
                 float s = instant ? 0f : z.crossfadeSeconds;
                 if (z.changeMusic) am.CrossfadeMusic(z.music, s);
-                if (z.changeAmbience) am.CrossfadeAmbience(z.ambience, s);
             }
             var r = z.config ? z.config.GetRoom(z.roomName) : null;
             if (r != null)

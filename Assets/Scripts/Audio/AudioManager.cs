@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DungeonUnity
 {
-    /// Owns the music, ambience and one-shot SFX sources. Volumes come from GameSettings (PlayerPrefs).
+    /// Owns the music and one-shot SFX sources. Volumes come from GameSettings (PlayerPrefs).
     [DisallowMultipleComponent]
     public class AudioManager : MonoBehaviour
     {
@@ -14,25 +14,22 @@ namespace DungeonUnity
 
         [Header("Sources (created if empty)")]
         public AudioSource musicSource;
-        public AudioSource ambienceSource;
         public AudioSource sfxSource;
 
         [Header("Clips")]
         public AudioClip music;
-        public AudioClip ambience;
         public NamedClip[] sfx = Array.Empty<NamedClip>();
 
         [Header("Behaviour")]
         public bool playMusicOnStart = true;
-        public bool playAmbienceOnStart = true;
         [Range(0f, 5f)] public float musicFadeSeconds = 1.5f;
-        [Range(0f, 10f), Tooltip("Default crossfade time when a RoomZone changes music or ambience.")] public float crossfadeSeconds = 2.5f;
+        [Range(0f, 10f), Tooltip("Default crossfade time when a RoomZone changes music.")] public float crossfadeSeconds = 2.5f;
         [Tooltip("Keep the beat position when crossfading between loops of the same tempo.")] public bool keepBeatOnCrossfade = true;
         [Tooltip("Optional preset for default volumes.")] public DungeonConfig config;
 
         readonly Dictionary<string, NamedClip> lookup = new Dictionary<string, NamedClip>(StringComparer.OrdinalIgnoreCase);
         float musicTarget = 1f, musicFade = 1f;
-        AudioSource musicOld, ambOld; float musicXf = 1f, ambXf = 1f, musicXfDur = 1f, ambXfDur = 1f;
+        AudioSource musicOld; float musicXf = 1f, musicXfDur = 1f;
         public AudioClip CurrentMusic => musicSource ? musicSource.clip : null;
         public bool MusicOn => musicTarget > 0f;
 
@@ -41,7 +38,6 @@ namespace DungeonUnity
             if (Instance && Instance != this) { Destroy(this); return; }
             Instance = this;
             musicSource = Ensure(musicSource, "Music", true);
-            ambienceSource = Ensure(ambienceSource, "Ambience", true);
             sfxSource = Ensure(sfxSource, "SFX", false);
             foreach (var c in sfx) if (c != null && !string.IsNullOrEmpty(c.name)) lookup[c.name] = c;
             GameSettings.Changed += Apply;
@@ -53,7 +49,6 @@ namespace DungeonUnity
         void Start()
         {
             if (music && musicSource) { musicSource.clip = music; if (playMusicOnStart) { musicFade = 0f; musicSource.Play(); } }
-            if (ambience && ambienceSource) { ambienceSource.clip = ambience; if (playAmbienceOnStart) ambienceSource.Play(); }
         }
 
         AudioSource Ensure(AudioSource s, string n, bool loop)
@@ -70,11 +65,8 @@ namespace DungeonUnity
             float step = musicFadeSeconds > 0f ? Time.unscaledDeltaTime / musicFadeSeconds : 1f;
             musicFade = Mathf.MoveTowards(musicFade, musicTarget, step);
             musicXf = Mathf.MoveTowards(musicXf, 1f, Time.unscaledDeltaTime / Mathf.Max(0.01f, musicXfDur));
-            ambXf = Mathf.MoveTowards(ambXf, 1f, Time.unscaledDeltaTime / Mathf.Max(0.01f, ambXfDur));
             musicSource.volume = GameSettings.Music * musicFade * Mathf.Sqrt(musicXf);
             if (musicOld) { musicOld.volume = GameSettings.Music * musicFade * Mathf.Sqrt(1f - musicXf); if (musicXf >= 1f) { musicOld.Stop(); musicOld = null; } }
-            if (ambienceSource) ambienceSource.volume = GameSettings.Ambience * Mathf.Sqrt(ambXf);
-            if (ambOld) { ambOld.volume = GameSettings.Ambience * Mathf.Sqrt(1f - ambXf); if (ambXf >= 1f) { ambOld.Stop(); ambOld = null; } }
             if (musicFade <= 0f && musicSource.isPlaying) musicSource.Pause();
         }
 
@@ -102,16 +94,6 @@ namespace DungeonUnity
             musicOld = musicSource; musicSource = next; musicXf = 0f; musicXfDur = seconds < 0f ? crossfadeSeconds : seconds;
             musicSource.clip = clip; musicSource.volume = 0f;
             if (clip && MusicOn) { musicSource.time = time; musicSource.Play(); }
-        }
-
-        /// Crossfades the ambience loop to another clip (null = silence).
-        public void CrossfadeAmbience(AudioClip clip, float seconds = -1f)
-        {
-            if (!ambienceSource || ambienceSource.clip == clip) return;
-            var next = Spare(ambienceSource, ref ambOld, "AmbienceB");
-            ambOld = ambienceSource; ambienceSource = next; ambXf = 0f; ambXfDur = seconds < 0f ? crossfadeSeconds : seconds;
-            ambienceSource.clip = clip; ambienceSource.volume = 0f;
-            if (clip) ambienceSource.Play();
         }
 
         AudioSource Spare(AudioSource current, ref AudioSource old, string n)

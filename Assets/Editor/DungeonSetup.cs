@@ -43,6 +43,8 @@ namespace DungeonUnity.Editor
             string welcome = ScenesDir + "/Welcome.unity", dungeon = ScenesDir + "/Dungeon.unity";
             BuildWelcome(welcome);
             BuildDungeon(dungeon);
+            DungeonLightingUpgrade.ApplyToScene(dungeon);
+            CharacterImport.Run();
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(welcome, true), new EditorBuildSettingsScene(dungeon, true) };
             AssetDatabase.SaveAssets();
             EditorSceneManager.OpenScene(welcome);
@@ -71,7 +73,6 @@ namespace DungeonUnity.Editor
             var am = go.AddComponent<AudioManager>();
             am.config = config;
             am.music = withMusic ? Clip("Music_Techno128_Loop") : null;
-            am.ambience = withMusic ? Clip("Amb_Crowd") : Clip("Amb_RoomTone");
             am.playMusicOnStart = withMusic;
             AudioManager.NamedClip N(string n, float vol, float jitter, params string[] files)
                 => new AudioManager.NamedClip { name = n, variants = files.Select(Clip).Where(c => c).ToArray(), volume = vol, pitchJitter = jitter };
@@ -207,12 +208,11 @@ namespace DungeonUnity.Editor
             Place(Models + "sink_with_mirror.glb", root, new Vector3(-13.5f, 0, 3), 90, 1.6f);
             var bathLight = PointLight("BathroomLight", root, new Vector3(-12.5f, 5, 5), new Color(0.75f, 1f, 0.85f), 1.2f, 10f);
             var bl = new GameObject("BathroomLights").AddComponent<BathroomLights>(); bl.transform.SetParent(systems); bl.lights = new[] { bathLight };
-            var buzz = bl.gameObject.AddComponent<AudioSource>(); buzz.clip = Clip("Amb_RoomTone"); buzz.loop = true; buzz.playOnAwake = true; buzz.spatialBlend = 1f; bl.buzz = buzz;
             bl.transform.position = new Vector3(-12.5f, 3, 5);
             var zone = new GameObject("BathroomZone"); zone.transform.SetParent(root); zone.transform.position = new Vector3(-12.6f, 3, 5);
             var zb = zone.AddComponent<BoxCollider>(); zb.isTrigger = true; zb.size = new Vector3(5, 6, 10);
             var allLasers = laserRoot.GetComponentsInChildren<LaserShowController>(true);
-            Zone(zone, "Bathroom", 2, Clip("Music_Muffled_Loop"), Clip("Amb_RoomTone"), new[] { bathLight }, rave, allLasers, false);
+            Zone(zone, "Bathroom", 2, Clip("Music_Muffled_Loop"), new[] { bathLight }, rave, allLasers, false);
 
             // ---------- More rooms ----------
             BuildExtraRooms(root, systems, rave, allLasers, raveLights, reds, floorMat, wallMat, ceilMat);
@@ -271,13 +271,6 @@ namespace DungeonUnity.Editor
                 var nap = npc.AddComponent<AutoPilot>(); nap.alwaysOn = true; nap.requireIdle = false; nap.waypoints = route; nap.speed = 1.4f; nap.order = AutoPilot.RouteOrder.PingPong; nap.lookAtWhileDwelling = stageTarget;
             }
 
-            // Smoke
-            if (config.enableSmoke)
-                foreach (var x in new[] { -6f, 6f })
-                {
-                    var sm = new GameObject("SmokeMachine"); sm.transform.SetParent(root); sm.transform.position = new Vector3(x, 0.2f, 8);
-                    sm.AddComponent<ParticleSystem>(); sm.AddComponent<SmokeMachine>();
-                }
 
             // Player
             var player = new GameObject("Player") { tag = "Player" }; player.transform.position = new Vector3(0, 1.1f, -7);
@@ -354,7 +347,6 @@ namespace DungeonUnity.Editor
             sm2.master = MakeSlider(setPanel.transform, "Master", 220, 0, 1);
             sm2.music = MakeSlider(setPanel.transform, "Music", 130, 0, 1);
             sm2.sfx = MakeSlider(setPanel.transform, "SFX", 40, 0, 1);
-            sm2.ambience = MakeSlider(setPanel.transform, "Ambience", -50, 0, 1);
             sm2.sensitivity = MakeSlider(setPanel.transform, "Mouse sensitivity", -140, 0.1f, 10);
             sm2.invertY = MakeToggle(setPanel.transform, "Invert Y", -230);
             sm2.backButton = MakeButton("Back", setPanel.transform, "BACK", new Vector2(0, -360));
@@ -370,10 +362,10 @@ namespace DungeonUnity.Editor
         }
 
         // ---------- rooms ----------
-        static RoomZone Zone(GameObject go, string room, int priority, AudioClip music, AudioClip amb, Light[] lights, DungeonRaveLighting rave, LaserShowController[] lasers, bool isDefault)
+        static RoomZone Zone(GameObject go, string room, int priority, AudioClip music, Light[] lights, DungeonRaveLighting rave, LaserShowController[] lasers, bool isDefault)
         {
             var z = go.AddComponent<RoomZone>(); z.config = config; z.roomName = room; z.priority = priority; z.isDefault = isDefault;
-            z.music = music; z.ambience = amb; z.roomLights = lights ?? new Light[0]; z.lighting = rave; z.lasers = lasers;
+            z.music = music; z.roomLights = lights ?? new Light[0]; z.lighting = rave; z.lasers = lasers;
             return z;
         }
 
@@ -387,7 +379,7 @@ namespace DungeonUnity.Editor
         {
             // Main Rave Hall (default zone, x -15..15, z -10..10)
             Zone(ZoneBox("Zone_MainRaveHall", root, new Vector3(0, 3, 0), new Vector3(30, 6, 20)), "Main Rave Hall", 0,
-                Clip("Music_Techno128_Loop"), Clip("Amb_Crowd"), hallLights.Concat(redLights).ToArray(), rave, lasers, true);
+                Clip("Music_Techno128_Loop"), hallLights.Concat(redLights).ToArray(), rave, lasers, true);
 
             // Red Light Corridor (x 15.5..35, z -2..2, 4 m high)
             var cor = new GameObject("RedLightCorridor").transform; cor.SetParent(root);
@@ -405,7 +397,7 @@ namespace DungeonUnity.Editor
             }
             var cs = cor.gameObject.AddComponent<RedLightStrobe>(); cs.lights = corLights.ToArray(); cs.emissiveRenderers = corRenderers.ToArray(); cs.bpm = config.bpm;
             Zone(ZoneBox("Zone_RedLightCorridor", root, new Vector3(25.25f, 2, 0), new Vector3(19.5f, 4, 4)), "Red Light Corridor", 1,
-                Clip("Music_Muffled_Loop"), Clip("Amb_CorridorHum"), corLights.ToArray(), rave, lasers, false);
+                Clip("Music_Muffled_Loop"), corLights.ToArray(), rave, lasers, false);
 
             // Trippy Chill Room (x 35..51, z -8..8)
             var chill = new GameObject("TrippyChillRoom").transform; chill.SetParent(root);
@@ -423,9 +415,8 @@ namespace DungeonUnity.Editor
             foreach (var (n, p, sc) in new[] { ("LavaLamp", new Vector3(37, 0, 6), 1.2f), ("LavaLamp", new Vector3(49, 0, -6), 1.2f), ("MeltingMushroom", new Vector3(47, 0, 6), 1.8f), ("FloatingEyeball", new Vector3(43, 3.5f, 0), 1.2f), ("CrystalTotem", new Vector3(49, 0, 6), 1.6f) })
                 Place(Psy + n + ".glb", chill, p, 0, sc);
             for (int i = 0; i < 3; i++) Box("Beanbag" + i, chill, new Vector3(40 + i * 3, 0.3f, -6.5f), new Vector3(1.4f, 0.6f, 1.2f), ceilMat);
-            if (config.enableSmoke) { var sm = new GameObject("ChillSmoke"); sm.transform.SetParent(chill); sm.transform.position = new Vector3(43, 0.2f, 0); sm.AddComponent<ParticleSystem>(); sm.AddComponent<SmokeMachine>(); }
             Zone(ZoneBox("Zone_TrippyChillRoom", root, new Vector3(43, 2.5f, 0), new Vector3(16, 5, 16)), "Trippy Chill Room", 1,
-                Clip("Music_Chill_Loop"), Clip("Amb_ChillDrone"), chillLights.ToArray(), rave, lasers, false);
+                Clip("Music_Chill_Loop"), chillLights.ToArray(), rave, lasers, false);
 
             // VIP Backstage: short corridor (x 10.5..13.5, z 10.5..14) behind a door, room x 4..20, z 14..26
             var vip = new GameObject("VIPBackstage").transform; vip.SetParent(root);
@@ -457,9 +448,9 @@ namespace DungeonUnity.Editor
             var vb = Place(Psy + "Bouncer.glb", vip, new Vector3(14.5f, 0, 15.5f), 200, 1.9f);
             if (vb) { var d = vb.AddComponent<CrowdDancer>(); d.style = CrowdDancer.DanceStyle.Bob; d.bobHeight = 0.02f; }
             Zone(ZoneBox("Zone_VIPBackstage", root, new Vector3(12, 2.5f, 20), new Vector3(16, 5, 12)), "VIP Backstage", 1,
-                Clip("Music_VIP_House_Loop"), Clip("Amb_Crowd"), vipLights.ToArray(), rave, lasers, false);
+                Clip("Music_VIP_House_Loop"), vipLights.ToArray(), rave, lasers, false);
             Zone(ZoneBox("Zone_VIPCorridor", root, new Vector3(12, 2, 12.25f), new Vector3(3, 4, 3.5f)), "Corridor", 1,
-                Clip("Music_Muffled_Loop"), Clip("Amb_CorridorHum"), new Light[0], rave, lasers, false).displayName = "Backstage Corridor";
+                Clip("Music_Muffled_Loop"), new Light[0], rave, lasers, false).displayName = "Backstage Corridor";
         }
 
         // ---------- helpers ----------
