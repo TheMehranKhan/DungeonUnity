@@ -26,6 +26,7 @@ namespace DungeonUnity
         }
 
         public CharacterRigConfig rigConfig;
+        [Tooltip("Adds a CharacterSpotlight to each spawned NPC (set by Improve Lighting & Rooms).")] public DungeonLightingConfig lightingConfig;
         public Entry[] characters = new Entry[0];
         [Range(2, 12), Tooltip("Random wander points per NPC.")] public int wanderPoints = 5;
         [Range(0f, 3f), Tooltip("Keep this far from the room walls.")] public float wallMargin = 1.5f;
@@ -76,6 +77,7 @@ namespace DungeonUnity
             var rig = go.AddComponent<CharacterRig>();
             rig.characterModel = e.model; rig.modelHeight = e.height; rig.modelYaw = e.modelYaw; rig.source = e.rigSource; rig.legFraction = e.legFraction; rig.config = rigConfig;
             go.AddComponent<ProceduralWalk>();
+            if (!lightingConfig || lightingConfig.characterLight) go.AddComponent<CharacterSpotlight>().config = lightingConfig;
             var root = new GameObject(go.name + "_Route").transform; root.SetParent(transform, true);
             var pts = new Transform[wanderPoints];
             for (int i = 0; i < pts.Length; i++) { pts[i] = new GameObject("P" + i).transform; pts[i].SetParent(root, true); pts[i].position = RandomPoint(zone, rng); }

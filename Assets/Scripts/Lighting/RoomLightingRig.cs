@@ -63,6 +63,12 @@ namespace DungeonUnity
             rim = MakeLight("Rim", LightType.Spot, new Vector3(b.center.x + b.extents.x * 0.2f, b.max.y - 0.3f, b.max.z - 0.5f), L.rimColor, L.rimIntensity * scale, diag);
             rim.spotAngle = 110f; rim.transform.LookAt(new Vector3(b.center.x, b.min.y + 1f, b.center.z - b.extents.z * 0.3f)); rim.shadows = LightShadows.None;
 
+            if (config && config.roomFill && config.roomFillIntensity > 0f)
+            {
+                var bf = MakeLight("BaseFill", LightType.Point, new Vector3(b.center.x, b.max.y - 0.4f, b.center.z), config.roomFillColor, config.roomFillIntensity, diag * config.roomFillRange);
+                bf.shadows = LightShadows.None; bf.renderMode = LightRenderMode.Auto;
+            }
+
             if (L.neonStrips) BuildStrips(b, L, scale);
             if (!config || config.reflectionProbes) BuildReflectionProbe(b);
             if (!config || config.lightProbes) BuildLightProbes(b);

@@ -29,6 +29,9 @@ namespace DungeonUnity
         public Color ambient = new Color(0.03f, 0.02f, 0.05f);
         [Range(0f, 10f), Tooltip("Multiplies every room's ambient colour (DungeonLightingConfig sets this).")] public float ambientBoost = 1f;
         [Tooltip("Use a trilight gradient (brighter ceiling, darker floor) instead of flat ambient.")] public bool trilight = true;
+        [Tooltip("Dim ambient floor added on top of the room colour (DungeonLightingConfig > Base Ambient).")] public bool baseAmbient = true;
+        public Color baseSky = new Color(0.22f, 0.16f, 0.38f), baseEquator = new Color(0.12f, 0.1f, 0.24f), baseGround = new Color(0.05f, 0.04f, 0.08f);
+        [Range(0f, 1f)] public float baseIntensity = 0.3f;
         [Range(0.1f, 10f), Tooltip("Seconds to blend when a room palette changes.")] public float roomBlendSeconds = 1.5f;
 
         Color[] randomColors;
@@ -59,13 +62,15 @@ namespace DungeonUnity
             if (applyAmbient)
             {
                 var c = Color.Lerp(ambientFrom, ambient * ambientBoost, k);
+                float bi = baseAmbient ? baseIntensity : 0f;
                 if (trilight)
                 {
                     RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-                    RenderSettings.ambientSkyColor = c * 1.4f; RenderSettings.ambientEquatorColor = c; RenderSettings.ambientGroundColor = c * 0.5f;
+                    RenderSettings.ambientSkyColor = c * 1.4f + baseSky * bi; RenderSettings.ambientEquatorColor = c + baseEquator * bi; RenderSettings.ambientGroundColor = c * 0.5f + baseGround * bi;
                 }
                 else RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-                RenderSettings.ambientLight = c;
+                RenderSettings.ambientLight = c + baseEquator * bi;
+                RenderSettings.ambientIntensity = 1f;
             }
             RenderSettings.fog = false; // fog/smoke removed
         }

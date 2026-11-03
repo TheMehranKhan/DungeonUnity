@@ -35,6 +35,27 @@ namespace DungeonUnity
         [Range(0f, 8f), Tooltip("Floor for the rave lights so rooms never go fully black.")] public float raveMinIntensity = 1.2f;
         [Range(0f, 2f), Tooltip("Scales every light the upgrade creates.")] public float globalLightScale = 1f;
 
+        [Header("Base Ambient")]
+        [Tooltip("Adds a dim ambient floor so rooms are dark but readable.")] public bool baseAmbient = true;
+        public Color baseSkyColor = new Color(0.22f, 0.16f, 0.38f);
+        public Color baseEquatorColor = new Color(0.12f, 0.1f, 0.24f);
+        public Color baseGroundColor = new Color(0.05f, 0.04f, 0.08f);
+        [Range(0f, 1f)] public float baseAmbientIntensity = 0.3f;
+
+        [Header("Room Fill")]
+        [Tooltip("Soft shadowless point light near each room's ceiling centre.")] public bool roomFill = true;
+        public Color roomFillColor = new Color(0.55f, 0.5f, 0.85f);
+        [Range(0f, 5f)] public float roomFillIntensity = 0.8f;
+        [Range(0.3f, 2f), Tooltip("Range as a multiple of the room diagonal.")] public float roomFillRange = 0.8f;
+
+        [Header("Character Light")]
+        [Tooltip("Small shadowless light that follows every NPC and the player.")] public bool characterLight = true;
+        public Color characterLightColor = new Color(1f, 0.85f, 0.95f);
+        [Range(0f, 5f)] public float characterLightIntensity = 0.9f;
+        [Range(0.5f, 8f)] public float characterLightRange = 3f;
+        [Tooltip("Offset from the character root (up, back toward camera).")] public Vector3 characterLightOffset = new Vector3(0.4f, 2.2f, -0.8f);
+        [Tooltip("Swap black/unlit/broken character materials to URP Lit at runtime.")] public bool fixCharacterMaterials = true;
+
         [Header("Shadows")]
         public LightShadows keyShadows = LightShadows.Soft;
         [Range(0f, 1f)] public float shadowStrength = 0.75f;
@@ -51,9 +72,9 @@ namespace DungeonUnity
         [Range(0f, 2f)] public float bloomThreshold = 0.9f;
         [Range(0f, 1f)] public float bloomScatter = 0.7f;
         [Tooltip("None, Neutral or ACES.")] public string tonemapping = "ACES";
-        [Range(-3f, 3f)] public float postExposure = 0.5f;
+        [Range(-1f, 1.5f), Tooltip("Keep 0 to +0.5 so blacks are not crushed.")] public float postExposure = 0.3f;
         [Range(-100f, 100f)] public float saturation = 15f;
-        [Range(-100f, 100f)] public float contrast = 10f;
+        [Range(-100f, 100f)] public float contrast = 5f;
         [Range(0f, 1f)] public float vignette = 0.25f;
 
         [Header("Doors")]

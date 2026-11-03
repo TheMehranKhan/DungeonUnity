@@ -58,6 +58,8 @@ namespace DungeonUnity.Editor
             foreach (var rave in Object.FindObjectsOfType<DungeonRaveLighting>())
             {
                 rave.ambientBoost = cfg.ambientBoost; rave.trilight = cfg.trilightAmbient;
+                rave.baseAmbient = cfg.baseAmbient; rave.baseIntensity = cfg.baseAmbientIntensity;
+                rave.baseSky = cfg.baseSkyColor; rave.baseEquator = cfg.baseEquatorColor; rave.baseGround = cfg.baseGroundColor;
                 rave.minIntensity = Mathf.Max(rave.minIntensity, cfg.raveMinIntensity);
                 if (rave.maxIntensity < rave.minIntensity) rave.maxIntensity = rave.minIntensity + 1f;
                 EditorUtility.SetDirty(rave);
@@ -65,11 +67,35 @@ namespace DungeonUnity.Editor
             foreach (var l in Object.FindObjectsOfType<Light>())
                 if (!l.transform.parent || l.transform.parent.name != "LightRig") { l.shadows = cfg.raveLightShadows ? LightShadows.Soft : LightShadows.None; }
 
+            // Editor-time ambient floor (runtime DungeonRaveLighting keeps it too)
+            if (cfg.baseAmbient)
+            {
+                float bi = cfg.baseAmbientIntensity;
+                RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+                RenderSettings.ambientSkyColor = cfg.baseSkyColor * bi * 2f; RenderSettings.ambientEquatorColor = cfg.baseEquatorColor * bi * 2f; RenderSettings.ambientGroundColor = cfg.baseGroundColor * bi * 2f;
+                RenderSettings.ambientIntensity = 1f;
+            }
+
+            // Character lights: player, scene NPCs, and the roster spawns
+            int charLights = 0;
+            var chars = new HashSet<GameObject>();
+            foreach (var r in Object.FindObjectsOfType<CharacterRig>(true)) chars.Add(r.gameObject);
+            foreach (var d in Object.FindObjectsOfType<CrowdDancer>(true)) chars.Add(d.gameObject);
+            foreach (var p in GameObject.FindGameObjectsWithTag("Player")) chars.Add(p);
+            foreach (var go in chars)
+            {
+                var cs = go.GetComponent<CharacterSpotlight>();
+                if (!cfg.characterLight) { if (cs) Object.DestroyImmediate(cs); continue; }
+                if (!cs) cs = go.AddComponent<CharacterSpotlight>();
+                cs.config = cfg; EditorUtility.SetDirty(cs); charLights++;
+            }
+            foreach (var roster in Object.FindObjectsOfType<CharacterRoster>(true)) { roster.lightingConfig = cfg; EditorUtility.SetDirty(roster); }
+
             // Post FX volume
             foreach (var post in Object.FindObjectsOfType<PostFXSetup>())
             {
                 post.bloom = true; post.bloomIntensity = cfg.bloomIntensity; post.bloomThreshold = cfg.bloomThreshold; post.bloomScatter = cfg.bloomScatter;
-                post.tonemapping = cfg.tonemapping != "None"; post.tonemappingMode = cfg.tonemapping; post.postExposure = cfg.postExposure;
+                post.tonemapping = cfg.tonemapping != "None"; post.tonemappingMode = cfg.tonemapping; post.postExposure = Mathf.Clamp(cfg.postExposure, 0f, 1f);
                 post.colorAdjustments = true; post.saturation = cfg.saturation; post.contrast = cfg.contrast;
                 post.vignette = cfg.vignette > 0f; post.vignetteIntensity = cfg.vignette;
                 post.cameras = Object.FindObjectsOfType<Camera>(true);
@@ -122,7 +148,7 @@ namespace DungeonUnity.Editor
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
-            Debug.Log($"[DungeonLighting] Lit {rooms} room(s), framed {doors} doorway(s), removed {removed} smoke object(s). Tweak {SettingsPath} and run Dungeon > Improve Lighting & Rooms again.");
+            Debug.Log($"[DungeonLighting] Lit {rooms} room(s), {charLights} character light(s), framed {doors} doorway(s), removed {removed} smoke object(s). Tweak {SettingsPath} and run Dungeon > Improve Lighting & Rooms again.");
         }
 
         /// Frame (two posts + header) with glowing trims on both faces, a small light and a doorway trigger.
