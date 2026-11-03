@@ -19,7 +19,7 @@ else
   say_ "Cloning into $DEST"; git clone --depth 1 "$REPO_URL" "$DEST" || die "clone failed"
 fi
 cd "$DEST" || die "cannot cd $DEST"
-mkdir -p Assets/Models/Psychedelic Assets/Textures/Psychedelic .downloads
+mkdir -p Assets/Models/Characters Assets/Models/Psychedelic Assets/Textures/Psychedelic .downloads
 
 # 2. download with resume + retries
 fetch() { # url out
@@ -50,6 +50,14 @@ for m in $BIG; do
   verify "$m.glb" "$out" && say_ "ok  $m.glb" || { rm -f "$out"; FAIL+=$m.glb; }
 done
 
+for c in MaskedRaver SpikeQueen; do
+  out="Assets/Models/Characters/$c.glb"
+  if verify "$c.glb" "$out"; then say_ "ok  $c.glb (already here)"; continue; fi
+  say_ "get character $c.glb"
+  fetch "$REL/$c.glb" "$out.part" && mv -f "$out.part" "$out"
+  verify "$c.glb" "$out" && say_ "ok  $c.glb" || { rm -f "$out"; FAIL+=$c.glb; }
+done
+
 zip=.downloads/Psychedelic-pack.zip
 if ! verify Psychedelic-pack.zip "$zip"; then
   say_ "get Psychedelic-pack.zip"; fetch "$REL/Psychedelic-pack.zip" "$zip.part" && mv -f "$zip.part" "$zip"
@@ -60,7 +68,7 @@ else FAIL+=Psychedelic-pack.zip; fi
 
 n=$(ls Assets/Models/*.glb Assets/Models/Psychedelic/*.glb 2>/dev/null | wc -l | tr -d ' ')
 t=$(ls Assets/Textures/Psychedelic/*.png 2>/dev/null | wc -l | tr -d ' ')
-say_ "Have $n models (expect 19) and $t textures (expect 5)"
+say_ "Have $n models (expect 19) plus $(ls Assets/Models/Characters/*.glb 2>/dev/null | wc -l | tr -d " ") characters (expect 2) and $t textures (expect 5)"
 (( ${#FAIL} )) && say_ "Failed: ${FAIL[*]} (run setup.command again to resume)"
 
 [[ "${SKIP_UNITY:-0}" == 1 ]] && { say_ "SKIP_UNITY=1, stopping before Unity"; exit 0; }

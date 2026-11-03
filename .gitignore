@@ -16,3 +16,4 @@
 .DS_Store
 *.part
 .downloads/
+Assets/Models/Characters/*.glb
