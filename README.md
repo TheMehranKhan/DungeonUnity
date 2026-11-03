@@ -124,6 +124,15 @@ Change a preset, then run Build Scene again. Every script also exposes its own t
 
 All sounds are synthesised by code (no samples), so they are free to use. Run `python3 Tools/make_audio.py` (numpy and scipy) to regenerate them.
 
+### Music menu, dancing, new rooms
+- **M** opens the music menu (pick any track, Prev/Next, Auto = each room's own music). **N** skips to the next track. Picking a track overrides room music until you press Auto.
+- Per-room music: each `RoomZone` has `music` (clip) and `trackName` (a `MusicPlayer` track name, wins when set).
+- Tracks (procedural, original): Techno Warehouse, Acid Squelch, Industrial Red Room, Velvet House, Ambient Chill, Festival Big Room. The bathroom plays `Music_Bathroom_Loop` (drips, bass through the wall, fluorescent hum). New SFX: Riser, Impact, CrowdCheer, PipeClank, DoorWhoosh.
+- `ProceduralDance` (beat bounce, hip sway, head bob, twist, step-touch, rock, shuffle; switches every few bars). `CharacterRoster.danceRooms` (default Main Rave Hall, Festival) makes NPCs there dance instead of wander; per entry `dance` = Auto/Dance/Wander.
+- `DancePair`: MaskedRaver and SpikeQueen dance facing each other on the Main Rave Hall floor, mirrored, on the beat, circling every few bars. Inspector: room, centerOffset, spacing, circle timing.
+- New rooms: **Red Room** (industrial, through the Red Light Corridor's south door) and **Festival** (through the hall's south door: stage, speaker towers, lasers, a dancing crowd).
+- Pills lie on the floor at `DungeonConfig.pillHeight`; floor props scale with `smallPropScale`.
+
 ## 3D models (Assets/Models, GLB, PBR textures)
 | File | Generator |
 |---|---|

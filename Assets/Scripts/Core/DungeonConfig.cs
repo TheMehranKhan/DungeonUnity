@@ -43,6 +43,10 @@ namespace DungeonUnity
         [Tooltip("One palette per room. DungeonSetup adds any missing defaults by name and never overwrites yours.")]
         public RoomPalette[] rooms = DefaultRooms();
 
+        [Header("Small props")]
+        [Range(0.03f, 0.6f), Tooltip("Height of the pills lying on the floor (metres).")] public float pillHeight = 0.12f;
+        [Range(0.1f, 2f), Tooltip("Scale for small floor props (pills, cans, bits).")] public float smallPropScale = 0.5f;
+
         public static RoomPalette[] DefaultRooms() => new[]
         {
             new RoomPalette { name = "Main Rave Hall" },
@@ -50,6 +54,8 @@ namespace DungeonUnity
             new RoomPalette { name = "Bathroom", lightColors = Solid(new Color(0.7f, 1f, 0.8f)), ambient = new Color(0.05f, 0.07f, 0.06f), laserColor = Color.green, maxIntensity = 1.5f, lasersOn = false },
             new RoomPalette { name = "Trippy Chill Room", lightColors = Pair(new Color(0.3f, 0.1f, 1f), new Color(0.1f, 1f, 0.8f)), ambient = new Color(0.04f, 0.02f, 0.08f), laserColor = new Color(0.5f, 0.2f, 1f), maxIntensity = 2f, lasersOn = false },
             new RoomPalette { name = "VIP Backstage", lightColors = Pair(new Color(1f, 0.75f, 0.2f), new Color(1f, 0.2f, 0.5f)), ambient = new Color(0.07f, 0.05f, 0.02f), laserColor = new Color(1f, 0.8f, 0.2f), maxIntensity = 3f, lasersOn = false },
+            new RoomPalette { name = "Red Room", lightColors = Pair(new Color(1f, 0.02f, 0.02f), new Color(0.6f, 0f, 0f)), ambient = new Color(0.06f, 0f, 0f), laserColor = Color.red, maxIntensity = 5f, lasersOn = true },
+            new RoomPalette { name = "Festival", lightColors = DefaultGradient(), ambient = new Color(0.04f, 0.03f, 0.08f), laserColor = Color.green, maxIntensity = 7f, lasersOn = true },
             new RoomPalette { name = "Corridor", lightColors = Solid(new Color(0.5f, 0.3f, 0.8f)), ambient = new Color(0.03f, 0.02f, 0.04f), laserColor = Color.magenta, maxIntensity = 1.5f, lasersOn = false },
         };
 

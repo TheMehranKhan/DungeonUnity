@@ -96,6 +96,8 @@ namespace DungeonUnity
             new RoomLightLook { name = "Bathroom", keyColor = new Color(0.85f, 1f, 0.9f), keyIntensity = 5f, fillColor = new Color(0.5f, 0.9f, 0.7f), rimColor = new Color(0.3f, 1f, 0.6f), neonColor = new Color(0.2f, 1f, 0.5f) * 2.5f, neonColor2 = new Color(0.6f, 1f, 0.9f) * 2f },
             new RoomLightLook { name = "Trippy Chill Room", keyColor = new Color(0.7f, 0.5f, 1f), keyIntensity = 4.5f, fillColor = new Color(0.2f, 0.8f, 1f), rimColor = new Color(1f, 0.3f, 1f), neonColor = new Color(0.5f, 0.2f, 1f) * 3f, neonColor2 = new Color(0.1f, 1f, 0.8f) * 3f },
             new RoomLightLook { name = "VIP Backstage", keyColor = new Color(1f, 0.85f, 0.55f), keyIntensity = 6f, fillColor = new Color(1f, 0.4f, 0.6f), rimColor = new Color(1f, 0.75f, 0.2f), neonColor = new Color(1f, 0.7f, 0.1f) * 3f, neonColor2 = new Color(1f, 0.2f, 0.5f) * 3f },
+            new RoomLightLook { name = "Red Room", keyColor = new Color(1f, 0.15f, 0.1f), keyIntensity = 4f, fillColor = new Color(0.5f, 0.02f, 0.02f), rimColor = new Color(1f, 0.3f, 0.05f), neonColor = new Color(1f, 0.02f, 0.02f) * 3.5f, neonColor2 = new Color(1f, 0.25f, 0.05f) * 2f },
+            new RoomLightLook { name = "Festival", keyColor = new Color(0.8f, 0.7f, 1f), keyIntensity = 7f, fillColor = new Color(0.3f, 0.2f, 0.9f), rimColor = new Color(0.1f, 1f, 0.6f), neonColor = new Color(0.2f, 0.6f, 1f) * 3f, neonColor2 = new Color(1f, 0.2f, 0.8f) * 3f },
             new RoomLightLook { name = "Corridor", keyColor = new Color(0.7f, 0.6f, 1f), keyIntensity = 3f, fillColor = new Color(0.4f, 0.3f, 0.8f), fillIntensity = 1.5f, rimIntensity = 2f, neonColor = new Color(0.6f, 0.3f, 1f) * 2.5f },
         };
 

@@ -24,7 +24,7 @@ namespace DungeonUnity.Editor
             if (!roster) roster = new GameObject("CharacterRoster").AddComponent<CharacterRoster>();
             if (!roster.rigConfig) roster.rigConfig = AssetDatabase.LoadAssetAtPath<CharacterRigConfig>("Assets/Settings/CharacterRigConfig.asset");
             var list = new List<CharacterRoster.Entry>(roster.characters ?? new CharacterRoster.Entry[0]);
-            string[] rooms = { "Main Rave Hall", "Trippy Chill Room", "VIP Backstage", "Red Light Corridor" };
+            string[] rooms = { "Main Rave Hall", "Trippy Chill Room", "VIP Backstage", "Red Light Corridor", "Festival", "Red Room" };
             int added = 0;
             var files = Directory.GetFiles(Dir).Where(f => f.EndsWith(".glb") || f.EndsWith(".gltf") || f.EndsWith(".fbx")).OrderBy(f => f).ToArray();
             foreach (var f in files)
@@ -38,6 +38,17 @@ namespace DungeonUnity.Editor
             }
             roster.characters = list.ToArray();
             EditorUtility.SetDirty(roster);
+            // MaskedRaver + SpikeQueen dance together on the main floor (DancePair takes them out of the wander list at runtime)
+            var pair = Object.FindObjectOfType<DancePair>();
+            if (!pair) { pair = new GameObject("DancePair_MaskedRaver_SpikeQueen").AddComponent<DancePair>(); }
+            pair.rigConfig = roster.rigConfig; pair.lightingConfig = roster.lightingConfig;
+            foreach (var e in list)
+            {
+                if (e == null || !e.model) continue;
+                if (e.label == pair.labelA) { pair.modelA = e.model; pair.height = e.height; pair.modelYawA = e.modelYaw; }
+                if (e.label == pair.labelB) { pair.modelB = e.model; pair.modelYawB = e.modelYaw; }
+            }
+            EditorUtility.SetDirty(pair);
             EditorSceneManager.MarkSceneDirty(roster.gameObject.scene);
             EditorSceneManager.SaveScene(roster.gameObject.scene);
             Debug.Log($"[CharacterImport] {added} new character(s), {list.Count} total in the roster. Drop more GLBs into {Dir} and run Dungeon > Import Characters.");

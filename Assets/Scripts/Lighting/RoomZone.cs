@@ -26,6 +26,7 @@ namespace DungeonUnity
         [Header("Audio")]
         public bool changeMusic = true;
         [Tooltip("Music loop for this room. Empty with changeMusic on = silence.")] public AudioClip music;
+        [Tooltip("Optional: name of a MusicPlayer track to use instead of the clip above.")] public string trackName = "";
         [Range(-1f, 10f), Tooltip("Crossfade seconds (-1 = AudioManager default).")] public float crossfadeSeconds = -1f;
 
         [Header("Lighting")]
@@ -39,6 +40,9 @@ namespace DungeonUnity
         [Tooltip("Optional object (lasers root, smoke...) enabled only while in this room.")] public GameObject[] onlyWhileInside = new GameObject[0];
 
         float[] baseIntensity = new float[0]; float weight;
+
+        /// The clip this room plays: the MusicPlayer track named trackName, else music.
+        public AudioClip ResolveMusic() { var c = MusicPlayer.Instance ? MusicPlayer.Instance.Find(trackName) : null; return c ? c : music; }
 
         public string Title => string.IsNullOrEmpty(displayName) ? roomName : displayName;
 
@@ -89,7 +93,7 @@ namespace DungeonUnity
             if (am)
             {
                 float s = instant ? 0f : z.crossfadeSeconds;
-                if (z.changeMusic) am.CrossfadeMusic(z.music, s);
+                if (z.changeMusic && !MusicPlayer.ManualOverride) am.CrossfadeMusic(z.ResolveMusic(), s);
             }
             var r = z.config ? z.config.GetRoom(z.roomName) : null;
             if (r != null)

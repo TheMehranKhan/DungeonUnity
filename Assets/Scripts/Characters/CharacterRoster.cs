@@ -23,9 +23,15 @@ namespace DungeonUnity
             [Range(0f, 0.9f), Tooltip("Crotch height fraction (0 = auto).")] public float legFraction = 0f;
             [Range(0.2f, 5f)] public float walkSpeed = 1.3f;
             [Range(0f, 20f)] public float dwellTime = 3f;
+            [Tooltip("Dance in place instead of wandering. Auto = dance when the room is in Dance Rooms.")] public DanceMode dance = DanceMode.Auto;
         }
 
+        public enum DanceMode { Auto, Dance, Wander }
+
         public CharacterRigConfig rigConfig;
+        [Header("Dancing")]
+        [Tooltip("NPCs placed in these rooms dance instead of wandering (when their entry is set to Auto).")] public string[] danceRooms = { "Main Rave Hall", "Festival" };
+        [Range(60f, 200f)] public float danceBpm = 128f;
         [Tooltip("Adds a CharacterSpotlight to each spawned NPC (set by Improve Lighting & Rooms).")] public DungeonLightingConfig lightingConfig;
         public Entry[] characters = new Entry[0];
         [Range(2, 12), Tooltip("Random wander points per NPC.")] public int wanderPoints = 5;
@@ -78,6 +84,14 @@ namespace DungeonUnity
             rig.characterModel = e.model; rig.modelHeight = e.height; rig.modelYaw = e.modelYaw; rig.source = e.rigSource; rig.legFraction = e.legFraction; rig.config = rigConfig;
             go.AddComponent<ProceduralWalk>();
             if (!lightingConfig || lightingConfig.characterLight) go.AddComponent<CharacterSpotlight>().config = lightingConfig;
+            bool dance = e.dance == DanceMode.Dance || (e.dance == DanceMode.Auto && zone && System.Array.IndexOf(danceRooms, zone.roomName) >= 0);
+            if (dance)
+            {
+                go.transform.rotation = Quaternion.Euler(0f, rng.Next(0, 360), 0f);
+                var d = go.AddComponent<ProceduralDance>(); d.bpm = danceBpm; d.variantSeed = rng.Next(); d.switchEveryBars = 2 + rng.Next(0, 4);
+                d.intensity = 0.8f + (float)rng.NextDouble() * 0.4f;
+                go.SetActive(true); spawned.Add(go); return;
+            }
             var root = new GameObject(go.name + "_Route").transform; root.SetParent(transform, true);
             var pts = new Transform[wanderPoints];
             for (int i = 0; i < pts.Length; i++) { pts[i] = new GameObject("P" + i).transform; pts[i].SetParent(root, true); pts[i].position = RandomPoint(zone, rng); }
