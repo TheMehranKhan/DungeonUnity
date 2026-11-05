@@ -73,18 +73,57 @@ say_ "Have $n models (expect 19) plus $(ls Assets/Models/Characters/*.glb 2>/dev
 
 [[ "${SKIP_UNITY:-0}" == 1 ]] && { say_ "SKIP_UNITY=1, stopping before Unity"; exit 0; }
 
-# 3. open in Unity 2022.3 and build the scene
-UNITY=""
-for u in /Applications/Unity/Hub/Editor/2022.3*/Unity.app/Contents/MacOS/Unity /Applications/Unity/Hub/Editor/*/Unity.app/Contents/MacOS/Unity /Applications/Unity/Unity.app/Contents/MacOS/Unity; do
-  [[ -x "$u" ]] && { UNITY="$u"; break; }
-done
+# 3. find Unity Editor (prefer Unity 6, then 2022.3, then any) incl. SlowTrash / external volumes
+unity_ver_of() { # path -> version folder name (…/VER/Unity.app/Contents/MacOS/Unity)
+  local p="$1"
+  print -r -- "${${p:A}:h:h:h:h:t}"
+}
+find_unity() {
+  local u ver best6="" best2022="" bestany="" v6="" v22=""
+  local -a patterns=(
+    /Volumes/SlowTrash/*/Unity.app/Contents/MacOS/Unity
+    /Volumes/TrashCan*/Applications/Unity/*/Unity.app/Contents/MacOS/Unity
+    /Volumes/*/Hub/Editor/*/Unity.app/Contents/MacOS/Unity
+    /Volumes/*/Unity/Hub/Editor/*/Unity.app/Contents/MacOS/Unity
+    /Volumes/*/Applications/Unity/Hub/Editor/*/Unity.app/Contents/MacOS/Unity
+    /Volumes/*/Applications/Unity/*/Unity.app/Contents/MacOS/Unity
+    /Volumes/*/*/Unity.app/Contents/MacOS/Unity
+    "$HOME/Unity/Hub/Editor"/*/Unity.app/Contents/MacOS/Unity
+    /Applications/Unity/Hub/Editor/*/Unity.app/Contents/MacOS/Unity
+    /Applications/Unity/*/Unity.app/Contents/MacOS/Unity
+    /Applications/Unity/Unity.app/Contents/MacOS/Unity
+  )
+  for pattern in $patterns; do
+    for u in $~pattern(N); do
+      [[ -x "$u" ]] || continue
+      ver="$(unity_ver_of "$u")"
+      case "$ver" in
+        6000.*)
+          if [[ -z "$best6" || "$ver" > "$v6" ]]; then best6="$u"; v6="$ver"; fi
+          ;;
+        2022.3.*)
+          if [[ -z "$best2022" || "$ver" > "$v22" ]]; then best2022="$u"; v22="$ver"; fi
+          ;;
+        *)
+          [[ -z "$bestany" ]] && bestany="$u"
+          ;;
+      esac
+    done
+  done
+  if [[ -n "$best6" ]]; then print -r -- "$best6"
+  elif [[ -n "$best2022" ]]; then print -r -- "$best2022"
+  elif [[ -n "$bestany" ]]; then print -r -- "$bestany"
+  fi
+}
+UNITY="$(find_unity)"
 if [[ -n "$UNITY" ]]; then
-  say_ "Opening in $(basename $(dirname $(dirname $(dirname $(dirname "$UNITY"))))) and building the scene (first import takes a few minutes)"
+  say_ "Opening in $(unity_ver_of "$UNITY") ($UNITY) and building the scene (first import takes a few minutes)"
   "$UNITY" -projectPath "$DEST" -executeMethod DungeonUnity.Editor.DungeonSetup.BuildScene >/dev/null 2>&1 &
   say_ "Unity is starting. When it finishes, open Assets/Scenes/Welcome.unity and press Play."
-elif [[ -d "/Applications/Unity Hub.app" ]]; then
-  say_ "No Unity Editor found. Install 2022.3 LTS in Unity Hub, then run this again (or Add project: $DEST, then menu Dungeon > Build Scene)."
-  open -a "Unity Hub"
+elif [[ -d "/Applications/Unity Hub.app" || -d "/Volumes/Unity Hub/Unity Hub.app" ]]; then
+  say_ "No Unity Editor found. Install Unity 6 (or 2022.3) in Unity Hub - on SlowTrash / external drive is fine - then run this again (or Add project: $DEST, then menu Dungeon > Build Scene)."
+  if [[ -d "/Applications/Unity Hub.app" ]]; then open -a "Unity Hub"
+  else open "/Volumes/Unity Hub/Unity Hub.app"; fi
 else
-  say_ "Unity Hub not found. Get it at https://unity.com/download, install Unity 2022.3 LTS, then run this again."
+  say_ "Unity Hub not found. Get it at https://unity.com/download, install Unity 6 (or 2022.3), then run this again."
 fi
