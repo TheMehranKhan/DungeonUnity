@@ -3,6 +3,15 @@
 #   curl -fsSL https://raw.githubusercontent.com/TheMehranKhan/DungeonUnity/main/setup.command | zsh
 setopt nonomatch
 set -u
+
+# UPM cache (avoid TrashCan EACCES)
+export UPM_CACHE_ROOT="${UPM_CACHE_ROOT:-$HOME/Library/Unity/cache}"
+mkdir -p "$UPM_CACHE_ROOT"
+# Keep user config aligned when present
+if [[ ! -f "$HOME/.upmconfig.toml" ]] || ! grep -q 'cacheRoot' "$HOME/.upmconfig.toml" 2>/dev/null; then
+  printf 'cacheRoot = "%s"\n' "$UPM_CACHE_ROOT" > "$HOME/.upmconfig.toml"
+fi
+
 REPO_URL="https://github.com/TheMehranKhan/DungeonUnity.git"
 REL="https://github.com/TheMehranKhan/DungeonUnity/releases/download/assets-v1"
 DEST="${DUNGEON_DIR:-$HOME/DungeonUnity}"
